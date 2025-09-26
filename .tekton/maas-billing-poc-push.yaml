@@ -30,7 +30,8 @@ spec:
   - name: path-context
     value: maas-api
   - name: prefetch-input
-    value: '{"type": "gomod", "path": "maas-api"}'
+    value: |
+      [{"type": "rpm"}, {"type": "gomod", "path": "maas-api"}]
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
