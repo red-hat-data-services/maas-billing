@@ -1,0 +1,12 @@
+---
+lockfileVersion: 1
+lockfileVendor: redhat
+arches:
+- arch: aarch64
+  packages: []
+  source: []
+  module_metadata: []
+- arch: x86_64
+  packages: []
+  source: []
+  module_metadata: []

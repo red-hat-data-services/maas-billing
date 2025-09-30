@@ -28,10 +28,10 @@ spec:
   - name: dockerfile
     value: maas-api/Dockerfile
   - name: path-context
-    value: maas-api
+    value: .
   - name: prefetch-input
     value: |
-      [{"type": "gomod", "path": "maas-api"}]
+      [{"type": "rpm"}, {"type": "gomod", "path": "maas-api"}]
   - name: build-image-index
     value: true
   - name: build-platforms
