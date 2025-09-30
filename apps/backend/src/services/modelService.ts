@@ -1,8 +1,20 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import axios from 'axios';
 import { logger } from '../utils/logger';
 
-const execAsync = promisify(exec);
+// OpenAI-compatible v1 API response interfaces
+interface OpenAIModel {
+  id: string;
+  created: number;
+  object: string;
+  owned_by: string;
+  ready: boolean;
+  url?: string; // URL field from MaaS API
+}
+
+interface OpenAIModelsResponse {
+  data: OpenAIModel[];
+  object: string;
+}
 
 export interface Model {
   id: string;
@@ -26,28 +38,16 @@ export class ModelService {
       return this.models;
     }
 
-    try {
-      logger.info('Fetching models from cluster...');
-      this.models = await this.fetchModelsFromCluster();
-      this.lastFetch = now;
-      
-      logger.info(`Retrieved ${this.models.length} models from cluster`, {
-        models: this.models.map(m => ({ id: m.id, namespace: m.namespace }))
-      });
-      
-      return this.models;
-    } catch (error) {
-      logger.error('Failed to fetch models from cluster:', error);
-      
-      // If we have cached models, return them as fallback
-      if (this.models.length > 0) {
-        logger.warn('Using cached models due to fetch error');
-        return this.models;
-      }
-      
-      // No cache available, throw error
-      throw new Error('No models available from cluster and no cached models');
-    }
+    // Fetch models from MaaS API only
+    logger.info('Fetching models from MaaS API...');
+    this.models = await this.fetchModelsFromMaasApi();
+    this.lastFetch = now;
+    
+    logger.info(`Retrieved ${this.models.length} models from MaaS API`, {
+      models: this.models.map(m => ({ id: m.id, namespace: m.namespace }))
+    });
+    
+    return this.models;
   }
 
   async getModelById(modelId: string): Promise<Model | null> {
@@ -63,90 +63,67 @@ export class ModelService {
     return model.endpoint;
   }
 
-  private async fetchModelsFromCluster(): Promise<Model[]> {
+  private async fetchModelsFromMaasApi(): Promise<Model[]> {
     try {
-      // Get InferenceServices and their corresponding routes
-      const [inferenceResult, routeResult] = await Promise.all([
-        execAsync(`kubectl get inferenceservices -A -o jsonpath='{range .items[*]}{.metadata.name}{"\\t"}{.metadata.namespace}{"\\t"}{.spec.predictor.model.modelFormat.name}{"\\n"}{end}'`),
-        execAsync(`kubectl get routes -n llm -o jsonpath='{range .items[*]}{.metadata.name}{"\\t"}{.spec.host}{"\\n"}{end}'`)
-      ]);
+      const maasApiUrl = process.env.MAAS_API_URL || (() => { throw new Error('MAAS_API_URL environment variable is required'); })();
       
-      if (!inferenceResult.stdout.trim()) {
-        logger.warn('No InferenceServices found in cluster');
-        return [];
-      }
-
-      // Build route mapping - purely data-driven
-      const routeMap = new Map<string, string>();
-      if (routeResult.stdout.trim()) {
-        const routeLines = routeResult.stdout.trim().split('\n');
-        for (const line of routeLines) {
-          const [routeName, host] = line.split('\t');
-          if (routeName && host) {
-            // Store route exactly as it appears in the cluster
-            routeMap.set(routeName, host);
-            logger.info(`Found route: ${routeName} -> ${host}`);
-          }
+      logger.info('Fetching models from MaaS API...', { url: `${maasApiUrl}/v1/models` });
+      
+      const response = await axios.get<OpenAIModelsResponse>(`${maasApiUrl}/v1/models`, {
+        timeout: 30000,
+        headers: {
+          'Accept': 'application/json',
         }
+      });
+
+      if (!response.data || !Array.isArray(response.data.data)) {
+        throw new Error('Invalid response format from MaaS API v1/models endpoint');
       }
 
+      logger.info(`Retrieved ${response.data.data.length} models from MaaS API v1/models`, {
+        models: response.data.data.map(m => ({ id: m.id, owned_by: m.owned_by, ready: m.ready, url: m.url }))
+      });
+      
+      const openAIModels = response.data.data;
+      
+      // Use URLs directly from MaaS API response
       const models: Model[] = [];
-      const lines = inferenceResult.stdout.trim().split('\n');
-      
-      for (const line of lines) {
-        const [name, namespace, modelFormat] = line.split('\t');
-        
-        if (!name || !namespace) {
-          logger.warn('Skipping invalid InferenceService entry:', line);
-          continue;
-        }
-
-        // Find matching route using generic pattern matching algorithms
-        let routeHost: string | undefined;
-        let bestMatch = '';
-        let bestScore = 0;
-        
-        for (const [routeName, host] of routeMap.entries()) {
-          const score = this.calculateRouteMatchScore(name, routeName);
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = routeName;
-            routeHost = host;
-          }
-        }
-        
-        if (!routeHost || bestScore < 0.3) { // Minimum threshold for matching
-          logger.warn(`No suitable route found for InferenceService ${name} (best match: ${bestMatch}, score: ${bestScore})`);
-          logger.warn(`Available routes: ${Array.from(routeMap.keys()).join(', ')}`);
+      for (const openAIModel of openAIModels) {
+        // Check if MaaS API provided a URL
+        if (!openAIModel.url) {
+          logger.warn(`Model ${openAIModel.id} has no URL in MaaS API response, skipping`);
           continue;
         }
         
-        logger.info(`Matched InferenceService ${name} to route ${bestMatch} (score: ${bestScore})`);
-      
-
-        const endpoint = `http://${routeHost}/v1/chat/completions`;
-        
-        // Extract display name
-        const displayName = name.replace(/-llm$/, '');
+        // Convert MaaS API URL to chat completions endpoint
+        const endpoint = openAIModel.url.endsWith('/v1/chat/completions') 
+          ? openAIModel.url 
+          : `${openAIModel.url.replace(/\/$/, '')}/v1/chat/completions`;
         
         models.push({
-          id: name,
-          name: this.formatModelName(displayName),
-          provider: 'KServe',
-          description: `${modelFormat || 'LLM'} model served via KServe`,
+          id: openAIModel.id,
+          name: this.formatModelName(openAIModel.id),
+          provider: 'KServe LLM',
+          description: `LLM model served via KServe (from MaaS API v1)`,
           endpoint,
-          namespace
+          namespace: openAIModel.owned_by
         });
         
-        logger.info(`Found model: ${name} with endpoint: ${endpoint}`);
+        logger.info(`Added model ${openAIModel.id} with endpoint: ${endpoint}`);
       }
 
       return models;
     } catch (error: any) {
-      logger.error('Error executing kubectl command:', error);
-      throw new Error(`Failed to fetch models from cluster: ${error.message}`);
+      logger.error('Failed to fetch models from MaaS API:', error);
+      
+      if (error.code === 'ECONNREFUSED') {
+        throw new Error(`MaaS API service is not available at ${process.env.MAAS_API_URL}. Please ensure the service is running.`);
+      }
+      
+      throw new Error(`Failed to fetch models from MaaS API: ${error.message}`);
     }
   }
+
 
   private formatModelName(modelId: string): string {
     // Convert model ID to human-readable name
@@ -156,64 +133,6 @@ export class ModelService {
       .join(' ');
   }
 
-  private calculateRouteMatchScore(inferenceServiceName: string, routeName: string): number {
-    // Normalize names for comparison
-    const normalizeString = (str: string) => str.toLowerCase().replace(/[-_]/g, '');
-    const normalizedService = normalizeString(inferenceServiceName);
-    const normalizedRoute = normalizeString(routeName);
-    
-    // Remove common suffixes/prefixes for better matching
-    const cleanService = normalizedService.replace(/^(inference|service|model)/, '').replace(/(service|model)$/, '');
-    const cleanRoute = normalizedRoute.replace(/route$/, '').replace(/^(api|service)/, '');
-    
-    // Calculate similarity scores using multiple algorithms
-    let score = 0;
-    
-    // 1. Exact match (highest score)
-    if (cleanService === cleanRoute) {
-      return 1.0;
-    }
-    
-    // 2. One contains the other
-    if (cleanService.includes(cleanRoute) || cleanRoute.includes(cleanService)) {
-      score += 0.8;
-    }
-    
-    // 3. Check for common word segments
-    const serviceWords = cleanService.split(/[^a-z0-9]+/).filter(w => w.length > 2);
-    const routeWords = cleanRoute.split(/[^a-z0-9]+/).filter(w => w.length > 2);
-    
-    let wordMatches = 0;
-    for (const serviceWord of serviceWords) {
-      for (const routeWord of routeWords) {
-        if (serviceWord === routeWord || serviceWord.includes(routeWord) || routeWord.includes(serviceWord)) {
-          wordMatches++;
-          break;
-        }
-      }
-    }
-    
-    if (serviceWords.length > 0) {
-      score += (wordMatches / serviceWords.length) * 0.6;
-    }
-    
-    // 4. Check for prefix matching
-    const maxPrefixLength = Math.min(cleanService.length, cleanRoute.length);
-    let prefixLength = 0;
-    for (let i = 0; i < maxPrefixLength; i++) {
-      if (cleanService[i] === cleanRoute[i]) {
-        prefixLength++;
-      } else {
-        break;
-      }
-    }
-    
-    if (prefixLength >= 3) { // At least 3 character prefix match
-      score += (prefixLength / maxPrefixLength) * 0.4;
-    }
-    
-    return Math.min(score, 1.0); // Cap at 1.0
-  }
 
   // Clear cache (useful for testing)
   clearCache(): void {
