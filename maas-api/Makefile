@@ -1,13 +1,10 @@
 # MaaS Billing Makefile
 
 # Container Engine to be used for building image and with kind
-CONTAINER_ENGINE ?= docker
-ifeq (podman,$(CONTAINER_ENGINE))
-    CONTAINER_ENGINE_EXTRA_FLAGS ?= --load
-endif
+CONTAINER_ENGINE ?= podman
 
 # Image settings
-REPO ?= ghcr.io/your-org/maas-api
+REPO ?= quay.io/opendatahub/maas-api
 TAG ?= latest
 FULL_IMAGE ?= $(REPO):$(TAG)
 
@@ -98,20 +95,12 @@ test: ## Run Go tests
 
 .PHONY: build-image
 build-image: ## Build container image (use REPO= and TAG= to specify image)
-	@if [ -z "$(REPO)" ]; then \
-		echo "Error: REPO is required. Usage: make build-image REPO=ghcr.io/myorg/maas-api"; \
-		exit 1; \
-	fi
 	@echo "Building container image $(FULL_IMAGE)..."
 	$(CONTAINER_ENGINE) build $(CONTAINER_ENGINE_EXTRA_FLAGS) -t $(FULL_IMAGE) .
 	@echo "Container image $(FULL_IMAGE) built successfully"
 
 .PHONY: push-image
 push-image: ## Push container image (use REPO= and TAG= to specify image)
-	@if [ -z "$(REPO)" ]; then \
-		echo "Error: REPO is required. Usage: make push-image REPO=ghcr.io/myorg/maas-api"; \
-		exit 1; \
-	fi
 	@echo "Pushing container image $(FULL_IMAGE)..."
 	@$(CONTAINER_ENGINE) push $(FULL_IMAGE)
 	@echo "Container image $(FULL_IMAGE) pushed successfully"
@@ -119,17 +108,27 @@ push-image: ## Push container image (use REPO= and TAG= to specify image)
 .PHONY: build-push-image
 build-push-image: build-image push-image ## Build and push container image
 
+## Deployment
+
 PRE_DEPLOY_STEP ?=
-.PHONY: deploy-dev
-deploy-dev: ## Deploy to development
+define deploy
 	kubectl create namespace maas-api || true
-	cd $(PROJECT_DIR)/deploy/overlays/dev && \
+	cd $(PROJECT_DIR)/deploy/$(1) && \
 		set -eu; \
 		cp kustomization.yaml kustomization.yaml.backup && \
 		trap 'mv kustomization.yaml.backup kustomization.yaml 2>/dev/null || true' EXIT INT TERM && \
 		kustomize edit set image maas-api=$(FULL_IMAGE) && \
 		$(if $(PRE_DEPLOY_STEP),$(PRE_DEPLOY_STEP) &&) \
 		kustomize build . | kubectl apply -f -
+endef
+
+.PHONY: deploy-dev
+deploy-dev: ## Deploy development version
+	$(call deploy,overlays/dev)
+
+.PHONY: deploy
+deploy: ## Deploy base component
+	$(call deploy,base)
 
 default_run_flags := --debug
 RUN_FLAGS ?= 
