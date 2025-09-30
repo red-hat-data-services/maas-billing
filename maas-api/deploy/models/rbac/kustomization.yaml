@@ -2,8 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 metadata:
-  name: maas-api-gw-api-routing-infra
+  name: maas-tiers-rbac
+
+namespace: llm
 
 resources:
-- gateway.yaml
-- httproute.yaml
+- all-tiers.yaml
