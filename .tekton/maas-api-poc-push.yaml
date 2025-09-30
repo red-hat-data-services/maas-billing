@@ -67,7 +67,7 @@ spec:
         path-context
       name: dockerfile
       type: string
-    - default: "false"
+    - default: "true"
       description: Force rebuild image
       name: rebuild
       type: string

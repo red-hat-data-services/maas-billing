@@ -1,5 +1,6 @@
 contentOrigin:
   repofiles:
-    - ubi.repo
+    ["./ubi.repo"]
 packages:
-  - ca-certificates
+  [ca-certificates]
+arches: [aarch64, x86_64, s390x, ppc64le]
