@@ -67,7 +67,7 @@ spec:
         path-context
       name: dockerfile
       type: string
-    - default: "true"
+    - default: "false"
       description: Force rebuild image
       name: rebuild
       type: string
@@ -141,7 +141,7 @@ spec:
         - name: name
           value: init
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-init:0.2@sha256:7c35e8345e47fbba627b97ded1dba190849a4f752ad89a50305db64f44be5b5b
+          value: quay.io/konflux-ci/tekton-catalog/task-init@sha256:526a104a3342e36dad5c5e7f98c647da6b2a33897e458f772ff4afe523e0690a
         - name: kind
           value: task
         resolver: bundles
