@@ -13,7 +13,7 @@ require (
 	k8s.io/api v0.33.4
 	k8s.io/apimachinery v0.33.4
 	k8s.io/client-go v0.33.4
-	k8s.io/utils v0.0.0-20241210054802-24370beab758
+	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
 	knative.dev/pkg v0.0.0-20251001000603-d38c7a0c7e74
 )
 
@@ -81,6 +81,5 @@ require (
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.2.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
