@@ -26,7 +26,7 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/rhoai-tenant/maas-billing-poc:{{revision}}
   - name: dockerfile
-    value: maas-api/Dockerfile
+    value: maas-api/Dockerfile.konflux
   - name: path-context
     value: maas-api
   - name: prefetch-input
