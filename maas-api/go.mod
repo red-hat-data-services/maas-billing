@@ -14,7 +14,7 @@ require (
 	k8s.io/apimachinery v0.33.4
 	k8s.io/client-go v0.33.4
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	knative.dev/pkg v0.0.0-20250915135827-db4c336acdbe
+	knative.dev/pkg v0.0.0-20251001000603-d38c7a0c7e74
 )
 
 replace github.com/kserve/kserve => github.com/opendatahub-io/kserve v0.0.0-20250901180218-9873b9442ed2
