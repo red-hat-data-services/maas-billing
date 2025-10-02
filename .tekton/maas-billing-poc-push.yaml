@@ -28,7 +28,7 @@ spec:
   - name: dockerfile
     value: maas-api/Dockerfile.konflux
   - name: path-context
-    value: .
+    value: maas-api
   - name: prefetch-input
     value: |
       {"type": "gomod", "path": "maas-api"}
