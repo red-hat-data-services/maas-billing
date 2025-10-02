@@ -31,7 +31,7 @@ spec:
     - version=v3.0
     - io.openshift.tags=odh-maas-api
   - name: output-image
-    value: quay.io/repository/rhoai/odh-maas-api-rhel9:{{revision}}
+    value: quay.io/rhoai/odh-maas-api-rhel9:{{revision}}
   - name: dockerfile
     value: maas-api/Dockerfile.konflux
   - name: path-context
