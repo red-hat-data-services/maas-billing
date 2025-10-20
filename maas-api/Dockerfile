@@ -8,12 +8,10 @@ RUN go mod download
 
 COPY . .
 
+USER root
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o maas-api ./cmd/
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
-
-# Install CA certificates for HTTPS requests
-RUN microdnf update -y && microdnf install -y ca-certificates curl-minimal && microdnf clean all
 
 WORKDIR /app
 
@@ -28,8 +26,5 @@ RUN chmod +x maas-api && \
 USER 1001
 
 EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
 
 CMD ["./maas-api"]

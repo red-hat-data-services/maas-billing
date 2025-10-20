@@ -4,6 +4,8 @@ import (
 	"flag"
 
 	"k8s.io/utils/env"
+
+	"github.com/opendatahub-io/maas-billing/maas-api/internal/constant"
 )
 
 // Config holds application configuration
@@ -16,9 +18,6 @@ type Config struct {
 	DebugMode bool
 	// Server configuration
 	Port string
-
-	// Provider config
-	Provider ProviderType
 
 	// Kubernetes configuration
 	KeyNamespace        string
@@ -40,10 +39,9 @@ func Load() *Config {
 	defaultTeam, _ := env.GetBool("CREATE_DEFAULT_TEAM", true)
 
 	c := &Config{
-		Name:      env.GetString("INSTANCE_NAME", "openshift-ai-inference"),
-		Namespace: env.GetString("NAMESPACE", "maas-api"),
+		Name:      env.GetString("INSTANCE_NAME", constant.DefaultGatewayName),
+		Namespace: env.GetString("NAMESPACE", constant.DefaultNamespace),
 		Port:      env.GetString("PORT", "8080"),
-		Provider:  ProviderType(env.GetString("PROVIDER", string(Secrets))),
 		DebugMode: debugMode,
 		// Secrets provider configuration
 		KeyNamespace:             env.GetString("KEY_NAMESPACE", "llm"),
@@ -54,7 +52,6 @@ func Load() *Config {
 		CreateDefaultTeam:        defaultTeam,
 		AdminAPIKey:              env.GetString("ADMIN_API_KEY", ""),
 	}
-
 	c.bindFlags(flag.CommandLine)
 
 	return c
@@ -66,5 +63,4 @@ func (c *Config) bindFlags(fs *flag.FlagSet) {
 	fs.StringVar(&c.Namespace, "namespace", c.Namespace, "Namespace")
 	fs.StringVar(&c.Port, "port", c.Port, "Port to listen on")
 	fs.BoolVar(&c.DebugMode, "debug", c.DebugMode, "Enable debug mode")
-	fs.Var(&c.Provider, "provider", "Provider type to use for API keys")
 }

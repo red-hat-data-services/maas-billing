@@ -8,8 +8,51 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+type ModelURL interface {
+	AddTo(obj *unstructured.Unstructured)
+	String() string
+}
+
+var _ ModelURL = PublicURL("")
+
+type PublicURL string
+
+func (p PublicURL) String() string {
+	return string(p)
+}
+
+func (p PublicURL) AddTo(obj *unstructured.Unstructured) {
+	_ = unstructured.SetNestedField(obj.Object, p.String(), "status", "url")
+	AddressEntry(p.String()).AddTo(obj)
+}
+
+var _ ModelURL = AddressEntry("")
+
+type AddressEntry string
+
+func (i AddressEntry) String() string {
+	return string(i)
+}
+
+func (i AddressEntry) AddTo(obj *unstructured.Unstructured) {
+	_ = unstructured.SetNestedSlice(obj.Object, []any{
+		map[string]any{
+			"url": i.String(),
+		},
+	}, "status", "addresses")
+}
+
+type LLMInferenceServiceOption func(*unstructured.Unstructured)
+
+// WithSpecModelName sets .spec.model.name (can be an empty string "" to test fallback logic).
+func WithSpecModelName(name string) LLMInferenceServiceOption {
+	return func(obj *unstructured.Unstructured) {
+		_ = unstructured.SetNestedField(obj.Object, name, "spec", "model", "name")
+	}
+}
+
 // CreateLLMInferenceService creates a test LLMInferenceService unstructured object
-func CreateLLMInferenceService(name, namespace, url string, ready bool) *unstructured.Unstructured {
+func CreateLLMInferenceService(name, namespace string, url ModelURL, ready bool, opts ...LLMInferenceServiceOption) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.Object = map[string]any{}
 	obj.SetAPIVersion("serving.kserve.io/v1alpha1")
@@ -19,17 +62,11 @@ func CreateLLMInferenceService(name, namespace, url string, ready bool) *unstruc
 	obj.SetCreationTimestamp(metav1.NewTime(time.Now().Add(-time.Hour)))
 	obj.SetGeneration(1)
 
-	// Set status with URL and conditions
-	status := map[string]any{
-		"observedGeneration": int64(1),
-	}
-
-	if url != "" {
-		status["url"] = url
-	}
+	_ = unstructured.SetNestedField(obj.Object, "1", "status", "observedGeneration")
+	url.AddTo(obj)
 
 	// Set conditions based on ready state - using actual LLMInferenceService condition types
-	conditions := []any{}
+	var conditions []any
 	if ready {
 		conditions = append(conditions, map[string]any{
 			"type":               "HTTPRoutesReady",
@@ -84,52 +121,42 @@ func CreateLLMInferenceService(name, namespace, url string, ready bool) *unstruc
 		})
 	}
 
-	status["conditions"] = conditions
-	obj.Object["status"] = status
+	_ = unstructured.SetNestedSlice(obj.Object, conditions, "status", "conditions")
+
+	// Apply options (e.g., WithSpecModelName)
+	for _, opt := range opts {
+		opt(obj)
+	}
 
 	return obj
 }
 
 // LLMTestScenario defines a test scenario for LLM models
 type LLMTestScenario struct {
-	Name      string
-	Namespace string
-	URL       string
-	Ready     bool
+	Name          string
+	Namespace     string
+	URL           ModelURL
+	Ready         bool
+	SpecModelName *string
 }
 
-// CreateLLMTestObjects creates a set of test LLM objects for testing
-func CreateLLMTestObjects() []runtime.Object {
-	scenarios := []LLMTestScenario{
-		{
-			Name:      "llama-7b",
-			Namespace: "model-serving",
-			URL:       "http://llama-7b.model-serving.svc.cluster.local/v1",
-			Ready:     true,
-		},
-		{
-			Name:      "gpt-3-turbo",
-			Namespace: "openai-models",
-			URL:       "http://gpt-3-turbo.openai-models.svc.cluster.local/v1",
-			Ready:     true,
-		},
-		{
-			Name:      "bert-base",
-			Namespace: "nlp-models",
-			URL:       "http://bert-base.nlp-models.svc.cluster.local/v1",
-			Ready:     false,
-		},
-		{
-			Name:      "model-without-url",
-			Namespace: TestNamespace,
-			URL:       "",
-			Ready:     false,
-		},
-	}
-
+// CreateLLMInferenceServices creates a set of test LLM objects for testing
+func CreateLLMInferenceServices(scenarios ...LLMTestScenario) []runtime.Object {
 	var objects []runtime.Object
 	for _, scenario := range scenarios {
-		obj := CreateLLMInferenceService(scenario.Name, scenario.Namespace, scenario.URL, scenario.Ready)
+		var opts []LLMInferenceServiceOption
+		if scenario.SpecModelName != nil {
+			opts = append(opts, WithSpecModelName(*scenario.SpecModelName))
+		}
+
+		obj := CreateLLMInferenceService(
+			scenario.Name,
+			scenario.Namespace,
+			scenario.URL,
+			scenario.Ready,
+			opts..., // apply any options (e.g., WithSpecModelName)
+		)
+
 		objects = append(objects, obj)
 	}
 
