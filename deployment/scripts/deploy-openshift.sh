@@ -162,6 +162,7 @@ echo "Required tools:"
 echo "  - oc: $(oc version --client --short 2>/dev/null | head -n1 || echo 'not found')"
 echo "  - jq: $(jq --version 2>/dev/null || echo 'not found')"
 echo "  - kustomize: $(kustomize version --short 2>/dev/null || echo 'not found')"
+echo "  - git: $(git --version 2>/dev/null || echo 'not found')"
 echo ""
 echo "ℹ️  Note: OpenShift Service Mesh should be automatically installed when GatewayClass is created."
 echo "   If the Gateway gets stuck in 'Waiting for controller', you may need to manually"
@@ -206,7 +207,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Only clean up leftover CRDs if Kuadrant operators are NOT already installed
 echo "   Checking for existing Kuadrant installation..."
-if ! kubectl get csv -n kuadrant-system kuadrant-operator.v1.3.0-rc2 &>/dev/null 2>&1; then
+if ! kubectl get csv -n kuadrant-system kuadrant-operator.v1.3.0 &>/dev/null 2>&1; then
     echo "   No existing installation found, checking for leftover CRDs..."
     LEFTOVER_CRDS=$(kubectl get crd 2>/dev/null | grep -E "kuadrant|authorino|limitador" | awk '{print $1}')
     if [ -n "$LEFTOVER_CRDS" ]; then
@@ -243,50 +244,19 @@ echo "   Deploying Gateway and GatewayClass..."
 cd "$PROJECT_ROOT"
 envsubst < deployment/base/networking/gateway-api.yaml | kubectl apply --server-side=true --force-conflicts -f -
 
-# Wait for Gateway API CRDs if not already present
-if ! kubectl get crd gateways.gateway.networking.k8s.io &>/dev/null 2>&1; then
-    echo "   Waiting for Gateway API CRDs..."
-    wait_for_crd "gateways.gateway.networking.k8s.io" 120 || \
-        echo "   ⚠️  Gateway API CRDs not yet available"
-fi
-
 echo ""
 echo "5️⃣ Checking for OpenDataHub/RHOAI KServe..."
 if kubectl get crd llminferenceservices.serving.kserve.io &>/dev/null 2>&1; then
     echo "   ✅ KServe CRDs already present (ODH/RHOAI detected)"
 else
     echo "   ⚠️  KServe not detected. Deploying ODH KServe components..."
-    echo "   Note: This may require multiple attempts as CRDs need to be established first."
-    
-    # First attempt
-    echo "   Attempting ODH KServe deployment (attempt 1/2)..."
-    if kustomize build "$PROJECT_ROOT/deployment/components/odh/kserve" | kubectl apply --server-side=true --force-conflicts -f - 2>/dev/null; then
-        echo "   ✅ Initial deployment successful"
-    else
-        echo "   ⚠️  First attempt failed (expected if CRDs not yet ready)"
-    fi
-    
-    # Wait for CRDs and operator pods, then retry
-    echo "   Waiting for KServe CRDs to be established..."
-    if wait_for_crd "llminferenceservices.serving.kserve.io" 120; then
-        
-        wait_for_pods "opendatahub" 120 || true
-        wait_for_validating_webhooks opendatahub 90 || true
-        
-        echo "   Retrying deployment (attempt 2/2)..."
-        kustomize build "$PROJECT_ROOT/deployment/components/odh/kserve" | kubectl apply --server-side=true --force-conflicts -f - && \
-            echo "   ✅ ODH KServe components deployed successfully" || \
-            echo "   ⚠️  ODH KServe deployment failed. This may be expected if ODH operator manages these resources."
-    else
-        echo "   ⚠️  CRDs did not become ready in time. Continuing anyway..."
-        echo "   Run: kustomize build $PROJECT_ROOT/deployment/components/odh/kserve | kubectl apply --server-side=true --force-conflicts -f -"
-    fi
+    "$SCRIPT_DIR/install-dependencies.sh" --odh
 fi
 
 echo ""
 echo "6️⃣ Waiting for Kuadrant operators to be installed by OLM..."
 # Wait for CSVs to reach Succeeded state (this ensures CRDs are created and deployments are ready)
-wait_for_csv "kuadrant-operator.v1.3.0-rc2" "kuadrant-system" 300 || \
+wait_for_csv "kuadrant-operator.v1.3.0" "kuadrant-system" 300 || \
     echo "   ⚠️  Kuadrant operator CSV did not succeed, continuing anyway..."
 
 wait_for_csv "authorino-operator.v0.22.0" "kuadrant-system" 60 || \
@@ -314,20 +284,6 @@ echo ""
 echo "8️⃣ Deploying MaaS API..."
 cd "$PROJECT_ROOT"
 kustomize build deployment/base/maas-api | envsubst | kubectl apply -f -
-
-echo ""
-echo "9️⃣ Applying OpenShift-specific configurations..."
-
-# Patch Kuadrant for OpenShift Gateway Controller
-echo "   Patching Kuadrant operator..."
-if ! kubectl -n kuadrant-system get deployment kuadrant-operator-controller-manager -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ISTIO_GATEWAY_CONTROLLER_NAMES")]}' | grep -q "ISTIO_GATEWAY_CONTROLLER_NAMES"; then
-  kubectl get csv kuadrant-operator.v1.3.0-rc2 -n kuadrant-system -o json | \
-  jq '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env |= map(if .name == "ISTIO_GATEWAY_CONTROLLER_NAMES" then . + {"value": "istio.io/gateway-controller,openshift.io/gateway-controller/v1"} else . end)' | \
-  kubectl apply -f -
-  echo "   ✅ Kuadrant operator patched"
-else
-  echo "   ✅ Kuadrant operator already configured"
-fi
 
 # Restart Kuadrant operator to pick up the new configuration
 echo "   Restarting Kuadrant operator to apply Gateway API provider recognition..."
@@ -361,12 +317,6 @@ echo ""
 echo "1️⃣1️⃣ Applying Gateway Policies..."
 cd "$PROJECT_ROOT"
 kustomize build deployment/base/policies | kubectl apply --server-side=true --force-conflicts -f -
-
-echo ""
-echo "1️⃣2️⃣ Deploying OpenShift Routes..."
-cd "$PROJECT_ROOT"
-envsubst < deployment/overlays/openshift/openshift-routes.yaml | kubectl apply -f -
-envsubst < deployment/overlays/openshift/gateway-route.yaml | kubectl apply -f -
 
 echo ""
 echo "1️⃣3️⃣ Patching AuthPolicy with correct audience..."
