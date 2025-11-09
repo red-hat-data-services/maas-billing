@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
