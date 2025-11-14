@@ -1,0 +1,56 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: granite-2b-gpu
+  annotations:
+    alpha.maas.opendatahub.io/tiers: '[]'
+spec:
+  model:
+    uri: hf://ibm-granite/granite-3.1-2b-instruct
+    name: ibm-granite/granite-3.1-2b-instruct
+  replicas: 1
+  router:
+    route: { }
+    # Connect to MaaS-enabled gateway
+    gateway:
+      refs:
+        - name: maas-default-gateway
+          namespace: openshift-ingress
+  template:
+    # Ensure the pod is scheduled on GPU nodes
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+    tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+    containers:
+      - name: main
+        # Specific vLLM version for Tesla T4 compatibility
+        image: vllm/vllm-openai:v0.6.3.post1
+        command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+        args:
+          - "--model=/mnt/models"
+          - "--served-model-name=ibm-granite/granite-3.1-2b-instruct"
+          - "--port=8000"
+          - "--ssl-keyfile=/etc/ssl/certs/tls.key"
+          - "--ssl-certfile=/etc/ssl/certs/tls.crt"
+          # Granite-specific overrides
+          - "--max-model-len=4096"
+          - "--trust-remote-code"
+          - "--dtype=float16"
+        env:
+          # Granite-specific environment variables for Tesla T4 compatibility
+          - name: VLLM_ATTENTION_BACKEND
+            value: XFORMERS
+          - name: VLLM_USE_V1
+            value: "false"
+        resources:
+          limits:
+            cpu: '2'
+            memory: 12Gi
+            nvidia.com/gpu: '1'
+          requests:
+            cpu: '500m'
+            memory: 8Gi
+            nvidia.com/gpu: '1'
