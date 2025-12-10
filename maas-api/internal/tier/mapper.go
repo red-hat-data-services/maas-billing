@@ -11,9 +11,10 @@ import (
 
 	"gopkg.in/yaml.v3"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	corev1typed "k8s.io/client-go/kubernetes/typed/core/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/opendatahub-io/maas-billing/maas-api/internal/constant"
 )
@@ -21,18 +22,35 @@ import (
 // Mapper handles tier-to-group mapping lookups.
 type Mapper struct {
 	tenantName      string
-	configMapClient corev1typed.ConfigMapInterface
+	namespace       string
+	configMapLister corelisters.ConfigMapLister
 }
 
-func NewMapper(clientset kubernetes.Interface, tenantName, namespace string) *Mapper {
+func NewMapper(ctx context.Context, clientset kubernetes.Interface, tenantName, namespace string) *Mapper {
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(
+		clientset,
+		constant.DefaultResyncPeriod,
+		informers.WithNamespace(namespace),
+	)
+
+	configMapInformer := informerFactory.Core().V1().ConfigMaps()
+	configMapLister := configMapInformer.Lister()
+
+	informerFactory.Start(ctx.Done())
+
+	if !cache.WaitForCacheSync(ctx.Done(), configMapInformer.Informer().HasSynced) {
+		log.Fatalf("failed to wait for caches to sync")
+	}
+
 	return &Mapper{
 		tenantName:      tenantName,
-		configMapClient: clientset.CoreV1().ConfigMaps(namespace),
+		namespace:       namespace,
+		configMapLister: configMapLister,
 	}
 }
 
-func (m *Mapper) Namespace(ctx context.Context, tier string) (string, error) {
-	tiers, err := m.loadTierConfig(ctx)
+func (m *Mapper) Namespace(tier string) (string, error) {
+	tiers, err := m.loadTierConfig()
 	if err != nil {
 		return "", err
 	}
@@ -49,34 +67,33 @@ func (m *Mapper) Namespace(ctx context.Context, tier string) (string, error) {
 // GetTierForGroups returns the highest level tier for a user with multiple group memberships.
 //
 // Returns error if no groups provided or no groups found in any tier.
-// Returns "free" as default if mapping is missing (fallback).
-func (m *Mapper) GetTierForGroups(ctx context.Context, groups ...string) (string, error) {
+func (m *Mapper) GetTierForGroups(groups ...string) (*Tier, error) {
 	if len(groups) == 0 {
-		return "", errors.New("no groups provided")
+		return nil, errors.New("no groups provided")
 	}
 
-	tiers, err := m.loadTierConfig(ctx)
+	tiers, err := m.loadTierConfig()
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			return "", fmt.Errorf("tier mapping not found, provide configuration in %s", constant.TierMappingConfigMap)
+			return nil, fmt.Errorf("tier mapping not found, provide configuration in %s", constant.TierMappingConfigMap)
 		}
 		log.Printf("Failed to load tier configuration from ConfigMap %s: %v", constant.TierMappingConfigMap, err)
-		return "", fmt.Errorf("failed to load tier configuration: %w", err)
+		return nil, fmt.Errorf("failed to load tier configuration: %w", err)
 	}
 
 	sort.SliceStable(tiers, func(i, j int) bool {
 		return tiers[i].Level > tiers[j].Level
 	})
 
-	for _, tier := range tiers {
+	for i := range tiers {
 		for _, userGroup := range groups {
-			if slices.Contains(tier.Groups, userGroup) {
-				return tier.Name, nil
+			if slices.Contains(tiers[i].Groups, userGroup) {
+				return &tiers[i], nil
 			}
 		}
 	}
 
-	return "", &GroupNotFoundError{Group: fmt.Sprintf("groups [%s]", strings.Join(groups, ", "))}
+	return nil, &GroupNotFoundError{Group: fmt.Sprintf("groups [%s]", strings.Join(groups, ", "))}
 }
 
 // ProjectedSAGroup returns the projected SA group for a tier.
@@ -88,8 +105,8 @@ func (m *Mapper) ProjectedNsName(tier *Tier) string {
 	return fmt.Sprintf("%s-tier-%s", m.tenantName, tier.Name)
 }
 
-func (m *Mapper) loadTierConfig(ctx context.Context) ([]Tier, error) {
-	cm, err := m.configMapClient.Get(ctx, constant.TierMappingConfigMap, metav1.GetOptions{})
+func (m *Mapper) loadTierConfig() ([]Tier, error) {
+	cm, err := m.configMapLister.ConfigMaps(m.namespace).Get(constant.TierMappingConfigMap)
 	if err != nil {
 		return nil, err
 	}
@@ -105,10 +122,39 @@ func (m *Mapper) loadTierConfig(ctx context.Context) ([]Tier, error) {
 		return nil, fmt.Errorf("failed to parse tier configuration: %w", err)
 	}
 
+	// Validate tier configuration on every load
+	if err := validateTierConfig(tiers); err != nil {
+		return nil, fmt.Errorf("invalid tier configuration: %w", err)
+	}
+
 	for i := range tiers {
 		tier := &tiers[i]
 		tier.Groups = append(tier.Groups, m.ProjectedSAGroup(tier))
 	}
 
 	return tiers, nil
+}
+
+// validateTierConfig validates that tier configuration is valid:
+// - All tier names must be unique
+// - If displayName is provided, it must be non-empty.
+func validateTierConfig(tiers []Tier) error {
+	seenNames := make(map[string]bool)
+
+	for i, tier := range tiers {
+		if tier.Name == "" {
+			return fmt.Errorf("tier at index %d has empty name", i)
+		}
+
+		if seenNames[tier.Name] {
+			return fmt.Errorf("duplicate tier name %q found", tier.Name)
+		}
+		seenNames[tier.Name] = true
+
+		if tier.DisplayName != "" && strings.TrimSpace(tier.DisplayName) == "" {
+			return fmt.Errorf("tier %q has whitespace-only displayName", tier.Name)
+		}
+	}
+
+	return nil
 }
