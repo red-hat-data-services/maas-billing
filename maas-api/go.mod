@@ -1,8 +1,6 @@
 module github.com/opendatahub-io/maas-billing/maas-api
 
-go 1.24.1
-
-toolchain go1.24.7
+go 1.24.9
 
 require (
 	github.com/gin-contrib/cors v1.7.6
@@ -39,7 +37,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
+	github.com/google/pprof v0.0.0-20251213031049-b05bdaca462f // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
