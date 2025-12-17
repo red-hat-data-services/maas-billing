@@ -157,4 +157,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace sigs.k8s.io/gateway-api-inference-extension => github.com/kubernetes-sigs/gateway-api-inference-extension v0.3.0
+replace sigs.k8s.io/gateway-api-inference-extension => github.com/kubernetes-sigs/gateway-api-inference-extension v0.5.1
