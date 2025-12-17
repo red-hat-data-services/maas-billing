@@ -150,7 +150,7 @@ require (
 	knative.dev/networking v0.0.0-20250117155906-67d1c274ba6a // indirect
 	knative.dev/serving v0.44.0 // indirect
 	sigs.k8s.io/controller-runtime v0.22.1 // indirect
-	sigs.k8s.io/gateway-api-inference-extension v0.3.0 // indirect
+	sigs.k8s.io/gateway-api-inference-extension v0.5.1 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
