@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/openai/openai-go/v2"
-	"github.com/openai/openai-go/v2/packages/pagination"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/packages/pagination"
 	"github.com/opendatahub-io/maas-billing/maas-api/internal/handlers"
 	"github.com/opendatahub-io/maas-billing/maas-api/internal/models"
 	"github.com/opendatahub-io/maas-billing/maas-api/test/fixtures"
