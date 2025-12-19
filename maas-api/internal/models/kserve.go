@@ -7,7 +7,7 @@ import (
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
 	kservelistersv1alpha1 "github.com/kserve/kserve/pkg/client/listers/serving/v1alpha1"
 	kservelistersv1beta1 "github.com/kserve/kserve/pkg/client/listers/serving/v1beta1"
-	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"knative.dev/pkg/apis"

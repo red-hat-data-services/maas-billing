@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
-	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"knative.dev/pkg/apis"
