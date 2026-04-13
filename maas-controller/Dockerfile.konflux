@@ -1,7 +1,7 @@
 # Temporary placeholder Dockerfile.konflux for maas-controller.
 # Will be replaced with the actual build when the controller is implemented.
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:5c8d55e845e14343bb84994a4d0a09002621ac0393f1f2bafc8aa219606ae451
+FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:33eae2776b5c5a44ecb1668eb5958ae6634b10c279727fa5030a394e07a7eb9e
 
 WORKDIR /app
 
