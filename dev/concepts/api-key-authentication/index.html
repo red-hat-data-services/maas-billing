@@ -8,31 +8,31 @@
       
       
       
-        <link rel="canonical" href="https://opendatahub-io.github.io/models-as-a-service/dev/reference/crds/maas-auth-policy/">
+        <link rel="canonical" href="https://opendatahub-io.github.io/models-as-a-service/dev/concepts/api-key-authentication/">
       
       
-        <link rel="prev" href="../external-model/">
+        <link rel="prev" href="../model-reference/">
       
       
-        <link rel="next" href="../maas-subscription/">
+        <link rel="next" href="../model-access-control/">
       
       
         
       
       
-      <link rel="icon" href="../../../assets/favicon.ico">
+      <link rel="icon" href="../../assets/favicon.ico">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>MaaSAuthPolicy - ODH Models-as-a-Service Documentation</title>
+        <title>API Key Authentication - ODH Models-as-a-Service Documentation</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,7 +51,7 @@
       
     
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#maasauthpolicy" class="md-skip">
+        <a href="#api-key-authentication" class="md-skip">
           Skip to content
         </a>
       
@@ -94,9 +94,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="ODH Models-as-a-Service Documentation" class="md-header__button md-logo" aria-label="ODH Models-as-a-Service Documentation" data-md-component="logo">
+    <a href="../.." title="ODH Models-as-a-Service Documentation" class="md-header__button md-logo" aria-label="ODH Models-as-a-Service Documentation" data-md-component="logo">
       
-  <img src="../../../assets/favicon.ico" alt="logo">
+  <img src="../../assets/favicon.ico" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              MaaSAuthPolicy
+              API Key Authentication
             
           </span>
         </div>
@@ -233,7 +233,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../.." class="md-tabs__link">
+        <a href="../.." class="md-tabs__link">
           
   
   
@@ -249,11 +249,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../../concepts/architecture/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../architecture/" class="md-tabs__link">
           
   
   
@@ -273,7 +275,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../quickstart/" class="md-tabs__link">
+        <a href="../../quickstart/" class="md-tabs__link">
           
   
   
@@ -300,7 +302,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../configuration-and-management/quota-and-access-configuration/" class="md-tabs__link">
+        <a href="../../configuration-and-management/quota-and-access-configuration/" class="md-tabs__link">
           
   
   
@@ -323,7 +325,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../user-guide/api-key-management/" class="md-tabs__link">
+        <a href="../../user-guide/api-key-management/" class="md-tabs__link">
           
   
   
@@ -343,7 +345,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../architecture-internals/controller-architecture/" class="md-tabs__link">
+        <a href="../../architecture-internals/controller-architecture/" class="md-tabs__link">
           
   
   
@@ -359,13 +361,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../maas-api-overview/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../reference/maas-api-overview/" class="md-tabs__link">
           
   
   
@@ -399,9 +399,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="ODH Models-as-a-Service Documentation" class="md-nav__button md-logo" aria-label="ODH Models-as-a-Service Documentation" data-md-component="logo">
+    <a href="../.." title="ODH Models-as-a-Service Documentation" class="md-nav__button md-logo" aria-label="ODH Models-as-a-Service Documentation" data-md-component="logo">
       
-  <img src="../../../assets/favicon.ico" alt="logo">
+  <img src="../../assets/favicon.ico" alt="logo">
 
     </a>
     ODH Models-as-a-Service Documentation
@@ -482,7 +482,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -510,7 +510,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../release-notes/" class="md-nav__link">
+      <a href="../../release-notes/" class="md-nav__link">
         
   
   
@@ -592,7 +592,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../migration/tier-to-subscription/" class="md-nav__link">
+      <a href="../../migration/tier-to-subscription/" class="md-nav__link">
         
   
   
@@ -620,7 +620,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../migration/upgrade-3.2-to-3.4/" class="md-nav__link">
+      <a href="../../migration/upgrade-3.2-to-3.4/" class="md-nav__link">
         
   
   
@@ -660,28 +660,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   
@@ -699,7 +702,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -717,7 +720,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../concepts/architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -745,7 +748,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../concepts/personas/" class="md-nav__link">
+      <a href="../personas/" class="md-nav__link">
         
   
   
@@ -773,7 +776,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../concepts/subscription-overview/" class="md-nav__link">
+      <a href="../subscription-overview/" class="md-nav__link">
         
   
   
@@ -801,7 +804,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../concepts/model-reference/" class="md-nav__link">
+      <a href="../model-reference/" class="md-nav__link">
         
   
   
@@ -826,10 +829,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../../concepts/api-key-authentication/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Key Authentication
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -845,6 +875,204 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-key-creation-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Key Creation Flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Key Creation Flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Concepts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creation-flow-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creation Flow Diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-key-validation-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Key Validation Flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Key Validation Flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#validation-flow-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation Flow Diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subscription-binding-and-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subscription Binding and Priority
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subscription Binding and Priority">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatic-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#explicit-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explicit Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#priority-ties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Priority Ties
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#group-membership-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group Membership Snapshots
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Group Membership Snapshots">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Snapshots?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-groups-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When Groups Change
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Documentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -857,7 +1085,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../concepts/model-access-control/" class="md-nav__link">
+      <a href="../model-access-control/" class="md-nav__link">
         
   
   
@@ -946,7 +1174,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../quickstart/" class="md-nav__link">
+      <a href="../../quickstart/" class="md-nav__link">
         
   
   
@@ -1028,7 +1256,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../install/prerequisites/" class="md-nav__link">
+      <a href="../../install/prerequisites/" class="md-nav__link">
         
   
   
@@ -1056,7 +1284,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../install/platform-setup/" class="md-nav__link">
+      <a href="../../install/platform-setup/" class="md-nav__link">
         
   
   
@@ -1146,7 +1374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../install/maas-setup/" class="md-nav__link">
+      <a href="../../install/maas-setup/" class="md-nav__link">
         
   
   
@@ -1174,7 +1402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../install/model-setup/" class="md-nav__link">
+      <a href="../../install/model-setup/" class="md-nav__link">
         
   
   
@@ -1202,7 +1430,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../install/external-model-setup/" class="md-nav__link">
+      <a href="../../install/external-model-setup/" class="md-nav__link">
         
   
   
@@ -1230,7 +1458,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../install/validation/" class="md-nav__link">
+      <a href="../../install/validation/" class="md-nav__link">
         
   
   
@@ -1258,7 +1486,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../install/troubleshooting/" class="md-nav__link">
+      <a href="../../install/troubleshooting/" class="md-nav__link">
         
   
   
@@ -1409,7 +1637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../configuration-and-management/quota-and-access-configuration/" class="md-nav__link">
+      <a href="../../configuration-and-management/quota-and-access-configuration/" class="md-nav__link">
         
   
   
@@ -1437,7 +1665,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../configuration-and-management/api-key-administration/" class="md-nav__link">
+      <a href="../../configuration-and-management/api-key-administration/" class="md-nav__link">
         
   
   
@@ -1465,7 +1693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../configuration-and-management/namespace-rbac/" class="md-nav__link">
+      <a href="../../configuration-and-management/namespace-rbac/" class="md-nav__link">
         
   
   
@@ -1493,7 +1721,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../configuration-and-management/troubleshooting-external-model-rbac/" class="md-nav__link">
+      <a href="../../configuration-and-management/troubleshooting-external-model-rbac/" class="md-nav__link">
         
   
   
@@ -1521,7 +1749,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../configuration-and-management/tls-configuration/" class="md-nav__link">
+      <a href="../../configuration-and-management/tls-configuration/" class="md-nav__link">
         
   
   
@@ -1549,7 +1777,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../configuration-and-management/gateway-patterns/" class="md-nav__link">
+      <a href="../../configuration-and-management/gateway-patterns/" class="md-nav__link">
         
   
   
@@ -1639,7 +1867,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../configuration-and-management/model-setup/" class="md-nav__link">
+      <a href="../../configuration-and-management/model-setup/" class="md-nav__link">
         
   
   
@@ -1667,7 +1895,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../configuration-and-management/model-listing-flow/" class="md-nav__link">
+      <a href="../../configuration-and-management/model-listing-flow/" class="md-nav__link">
         
   
   
@@ -1757,7 +1985,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../advanced-administration/observability/" class="md-nav__link">
+      <a href="../../advanced-administration/observability/" class="md-nav__link">
         
   
   
@@ -1785,7 +2013,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../advanced-administration/subscription-cardinality/" class="md-nav__link">
+      <a href="../../advanced-administration/subscription-cardinality/" class="md-nav__link">
         
   
   
@@ -1813,7 +2041,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../advanced-administration/limitador-persistence/" class="md-nav__link">
+      <a href="../../advanced-administration/limitador-persistence/" class="md-nav__link">
         
   
   
@@ -1841,7 +2069,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../configuration-and-management/authorino-caching/" class="md-nav__link">
+      <a href="../../configuration-and-management/authorino-caching/" class="md-nav__link">
         
   
   
@@ -1938,7 +2166,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/api-key-management/" class="md-nav__link">
+      <a href="../../user-guide/api-key-management/" class="md-nav__link">
         
   
   
@@ -1966,7 +2194,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/model-discovery/" class="md-nav__link">
+      <a href="../../user-guide/model-discovery/" class="md-nav__link">
         
   
   
@@ -1994,7 +2222,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/inference/" class="md-nav__link">
+      <a href="../../user-guide/inference/" class="md-nav__link">
         
   
   
@@ -2083,7 +2311,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../architecture-internals/controller-architecture/" class="md-nav__link">
+      <a href="../../architecture-internals/controller-architecture/" class="md-nav__link">
         
   
   
@@ -2111,7 +2339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../architecture-internals/reconciliation-flow/" class="md-nav__link">
+      <a href="../../architecture-internals/reconciliation-flow/" class="md-nav__link">
         
   
   
@@ -2139,7 +2367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../architecture-internals/authentication-internals/" class="md-nav__link">
+      <a href="../../architecture-internals/authentication-internals/" class="md-nav__link">
         
   
   
@@ -2221,7 +2449,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../contributing/testing-guide/" class="md-nav__link">
+      <a href="../../contributing/testing-guide/" class="md-nav__link">
         
   
   
@@ -2249,7 +2477,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../contributing/release-strategy/" class="md-nav__link">
+      <a href="../../contributing/release-strategy/" class="md-nav__link">
         
   
   
@@ -2289,31 +2517,28 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
   
   
@@ -2331,7 +2556,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2349,7 +2574,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../maas-api-overview/" class="md-nav__link">
+      <a href="../../reference/maas-api-overview/" class="md-nav__link">
         
   
   
@@ -2377,7 +2602,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api-reference/" class="md-nav__link">
+      <a href="../../reference/api-reference/" class="md-nav__link">
         
   
   
@@ -2402,31 +2627,28 @@
                 
   
   
-    
   
   
-  
     
     
     
     
       
       
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
         
           
-          
         
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_3" >
         
           
-          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="0">
             
   
   
@@ -2444,7 +2666,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2462,7 +2684,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../maas-model-ref/" class="md-nav__link">
+      <a href="../../reference/crds/maas-model-ref/" class="md-nav__link">
         
   
   
@@ -2490,7 +2712,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../external-model/" class="md-nav__link">
+      <a href="../../reference/crds/external-model/" class="md-nav__link">
         
   
   
@@ -2515,37 +2737,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    MaaSAuthPolicy
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../reference/crds/maas-auth-policy/" class="md-nav__link">
         
   
   
@@ -2561,114 +2756,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#maasauthpolicyspec" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        MaaSAuthPolicySpec
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#subjectspec" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        SubjectSpec
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#modelref-modelrefs-item" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ModelRef (modelRefs item)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#groupreference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GroupReference
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#meteringmetadata" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        MeteringMetadata
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#maasauthpolicystatus" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        MaaSAuthPolicyStatus
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#authpolicyrefstatus" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        AuthPolicyRefStatus
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#annotations" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Annotations
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2681,7 +2768,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../maas-subscription/" class="md-nav__link">
+      <a href="../../reference/crds/maas-subscription/" class="md-nav__link">
         
   
   
@@ -2709,7 +2796,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tenant/" class="md-nav__link">
+      <a href="../../reference/crds/tenant/" class="md-nav__link">
         
   
   
@@ -2772,10 +2859,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#maasauthpolicyspec" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        MaaSAuthPolicySpec
+        Overview
       
     </span>
   </a>
@@ -2783,76 +2870,166 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#subjectspec" class="md-nav__link">
+  <a href="#api-key-creation-flow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SubjectSpec
+        API Key Creation Flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Key Creation Flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Concepts
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#modelref-modelrefs-item" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#creation-flow-diagram" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ModelRef (modelRefs item)
+        Creation Flow Diagram
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#groupreference" class="md-nav__link">
+  <a href="#api-key-validation-flow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        GroupReference
+        API Key Validation Flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Key Validation Flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#validation-flow-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation Flow Diagram
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#meteringmetadata" class="md-nav__link">
+  <a href="#subscription-binding-and-priority" class="md-nav__link">
     <span class="md-ellipsis">
       
-        MeteringMetadata
+        Subscription Binding and Priority
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subscription Binding and Priority">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatic-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic Selection
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#maasauthpolicystatus" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#explicit-selection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        MaaSAuthPolicyStatus
+        Explicit Selection
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#authpolicyrefstatus" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#priority-ties" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AuthPolicyRefStatus
+        Priority Ties
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#annotations" class="md-nav__link">
+  <a href="#group-membership-snapshots" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Annotations
+        Group Membership Snapshots
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Group Membership Snapshots">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-snapshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Snapshots?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-groups-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When Groups Change
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Documentation
       
     </span>
   </a>
@@ -2879,250 +3056,133 @@
   
 
 
-<h1 id="maasauthpolicy">MaaSAuthPolicy</h1>
-<p>Defines who (groups/users) can access which models. Creates Kuadrant AuthPolicies that validate API keys via MaaS API callback and perform subscription selection. Must be created in the <code>models-as-a-service</code> namespace.</p>
-<h2 id="maasauthpolicyspec">MaaSAuthPolicySpec</h2>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Required</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>modelRefs</td>
-<td>[]ModelRef</td>
-<td>Yes</td>
-<td>List of <code>{name, namespace}</code> references to MaaSModelRef resources</td>
-</tr>
-<tr>
-<td>subjects</td>
-<td>SubjectSpec</td>
-<td>Yes</td>
-<td>Who has access (OR logic—any match grants access)</td>
-</tr>
-<tr>
-<td>meteringMetadata</td>
-<td>MeteringMetadata</td>
-<td>No</td>
-<td>Billing and tracking information</td>
-</tr>
-</tbody>
-</table>
-<h2 id="subjectspec">SubjectSpec</h2>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Required</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>groups</td>
-<td>[]GroupReference</td>
-<td>No</td>
-<td>List of Kubernetes group names</td>
-</tr>
-<tr>
-<td>users</td>
-<td>[]string</td>
-<td>No</td>
-<td>List of Kubernetes user names</td>
-</tr>
-</tbody>
-</table>
-<p>At least one of <code>groups</code> or <code>users</code> must be specified.</p>
-<h2 id="modelref-modelrefs-item">ModelRef (modelRefs item)</h2>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Required</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>name</td>
-<td>string</td>
-<td>Yes</td>
-<td>Name of the MaaSModelRef</td>
-</tr>
-<tr>
-<td>namespace</td>
-<td>string</td>
-<td>Yes</td>
-<td>Namespace where the MaaSModelRef lives</td>
-</tr>
-</tbody>
-</table>
-<h2 id="groupreference">GroupReference</h2>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Required</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>name</td>
-<td>string</td>
-<td>Yes</td>
-<td>Name of the group</td>
-</tr>
-</tbody>
-</table>
-<h2 id="meteringmetadata">MeteringMetadata</h2>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Required</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>organizationId</td>
-<td>string</td>
-<td>No</td>
-<td>Organization identifier for billing</td>
-</tr>
-<tr>
-<td>costCenter</td>
-<td>string</td>
-<td>No</td>
-<td>Cost center for billing attribution</td>
-</tr>
-<tr>
-<td>labels</td>
-<td>map[string]string</td>
-<td>No</td>
-<td>Additional labels for tracking</td>
-</tr>
-</tbody>
-</table>
-<h2 id="maasauthpolicystatus">MaaSAuthPolicyStatus</h2>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>phase</td>
-<td>string</td>
-<td>One of: <code>Pending</code>, <code>Active</code>, <code>Degraded</code>, <code>Failed</code>, <code>Invalid</code>. <code>Degraded</code> means some model references or AuthPolicies are unhealthy. <code>Invalid</code> means the spec is missing or structurally invalid.</td>
-</tr>
-<tr>
-<td>conditions</td>
-<td>[]Condition</td>
-<td>Latest observations of the policy's state</td>
-</tr>
-<tr>
-<td>authPolicies</td>
-<td>[]AuthPolicyRefStatus</td>
-<td>Underlying Kuadrant AuthPolicies and their state</td>
-</tr>
-</tbody>
-</table>
-<h2 id="authpolicyrefstatus">AuthPolicyRefStatus</h2>
-<p>Reports the status of each underlying Kuadrant AuthPolicy created by this MaaSAuthPolicy.</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>name</td>
-<td>string</td>
-<td>Name of the AuthPolicy resource</td>
-</tr>
-<tr>
-<td>namespace</td>
-<td>string</td>
-<td>Namespace of the AuthPolicy resource</td>
-</tr>
-<tr>
-<td>model</td>
-<td>string</td>
-<td>MaaSModelRef name this AuthPolicy targets</td>
-</tr>
-<tr>
-<td>modelNamespace</td>
-<td>string</td>
-<td>Namespace of the MaaSModelRef</td>
-</tr>
-<tr>
-<td>ready</td>
-<td>bool</td>
-<td>Whether the AuthPolicy resource is valid and healthy</td>
-</tr>
-<tr>
-<td>reason</td>
-<td>ConditionReason</td>
-<td>Machine-readable reason code (e.g. <code>Ready</code>, <code>NotReady</code>, <code>Unknown</code>)</td>
-</tr>
-<tr>
-<td>message</td>
-<td>string</td>
-<td>Human-readable description of the status</td>
-</tr>
-</tbody>
-</table>
-<h2 id="annotations">Annotations</h2>
-<p>MaaSAuthPolicy supports standard Kubernetes and OpenShift annotations for use by <code>kubectl</code>, the OpenShift console, and other tooling.</p>
-<table>
-<thead>
-<tr>
-<th>Annotation</th>
-<th>Description</th>
-<th>Example</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>openshift.io/display-name</code></td>
-<td>Human-readable display name</td>
-<td><code>"Premium Access Policy"</code></td>
-</tr>
-<tr>
-<td><code>openshift.io/description</code></td>
-<td>Free-text description</td>
-<td><code>"Grants premium-users group access to premium models"</code></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Example:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">maas.opendatahub.io/v1alpha1</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MaaSAuthPolicy</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">metadata</span><span class="p">:</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">premium-access</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">models-as-a-service</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">openshift.io/display-name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Premium</span><span class="nv"> </span><span class="s">Access</span><span class="nv"> </span><span class="s">Policy&quot;</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">openshift.io/description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Grants</span><span class="nv"> </span><span class="s">premium-users</span><span class="nv"> </span><span class="s">group</span><span class="nv"> </span><span class="s">access</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">premium</span><span class="nv"> </span><span class="s">models&quot;</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nt">spec</span><span class="p">:</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="c1"># ...</span>
-</code></pre></div>
+<h1 id="api-key-authentication">API Key Authentication</h1>
+<p>This page explains the technical architecture of API key authentication in the MaaS platform. For practical how-to guides, see:</p>
+<ul>
+<li><a href="../../user-guide/api-key-management/">API Key Management</a> - Creating and managing keys</li>
+<li><a href="../../user-guide/model-discovery/">Model Discovery</a> - Listing available models</li>
+<li><a href="../../user-guide/inference/">Inference</a> - Making inference requests</li>
+</ul>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>The platform uses a secure, API key–based authentication system. You authenticate with your OpenShift credentials to create long-lived API keys, which are stored as SHA-256 hashes in a PostgreSQL database. This approach provides several key benefits:</p>
+<ul>
+<li><strong>Long-Lived Credentials</strong>: API keys remain valid until you revoke them or they expire (configurable), unlike short-lived Kubernetes tokens.</li>
+<li><strong>Subscription-Based Access Control</strong>: Keys inherit your group membership at creation time; the gateway uses these groups for subscription lookup and rate limits.</li>
+<li><strong>Auditability</strong>: Every request is tied to a specific key and identity; <code>last_used_at</code> tracks usage.</li>
+<li><strong>Show-Once Security</strong>: The plaintext key is returned only at creation; only the hash is stored.</li>
+</ul>
+<hr />
+<h2 id="api-key-creation-flow">API Key Creation Flow</h2>
+<p>When you create an API key, you trade your OpenShift identity for a long-lived credential that can be used for programmatic access.</p>
+<h3 id="key-concepts">Key Concepts</h3>
+<ul>
+<li><strong>Subscription binding</strong>: Each key stores a MaaSSubscription name resolved at mint time. You can set it explicitly with the optional JSON field <code>subscription</code> on <code>POST /v1/api-keys</code>. If you omit it, the API selects your <strong>highest-priority</strong> accessible subscription (ties break deterministically).</li>
+<li><strong>Subscription access</strong>: Your access is still determined by MaaSAuthPolicy and MaaSSubscription, which map groups to models and rate limits. The bound name is used for gateway subscription resolution and metering.</li>
+<li><strong>User Groups</strong>: At creation time, your current group membership is stored with the key. These groups are used for subscription-based authorization when the key is validated.</li>
+<li><strong>API Key</strong>: A cryptographically secure string with <code>sk-oai-*</code> prefix. The plaintext is shown once; only the SHA-256 hash is stored in PostgreSQL.</li>
+<li><strong>Expiration</strong>: Keys have a configurable TTL via <code>expiresIn</code> (e.g., <code>30d</code>, <code>90d</code>, <code>1h</code>). If omitted, the key defaults to the configured maximum (e.g., 90 days).</li>
+</ul>
+<p>The create response includes a <code>subscription</code> field echoing the bound subscription name.</p>
+<h3 id="creation-flow-diagram">Creation Flow Diagram</h3>
+<p>This diagram illustrates the process of creating an API key:</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant User as OpenShift User
+    participant Gateway
+    participant AuthPolicy as AuthPolicy (Authorino)
+    participant MaaS as maas-api
+    participant DB as PostgreSQL
+
+    Note over User,MaaS: API Key Creation
+    User-&gt;&gt;Gateway: 1. POST /v1/api-keys (Bearer OpenShift token)
+    Gateway-&gt;&gt;AuthPolicy: Route request
+    AuthPolicy-&gt;&gt;AuthPolicy: Validate OpenShift token (TokenReview)
+    AuthPolicy-&gt;&gt;MaaS: 2. Forward request + user context (username, groups)
+    MaaS-&gt;&gt;MaaS: Generate sk-oai-* key, hash with SHA-256
+    MaaS-&gt;&gt;MaaS: Resolve subscription (explicit or highest priority)
+    MaaS-&gt;&gt;DB: 3. Store hash + metadata (username, groups, subscription, name, expiresAt)
+    DB--&gt;&gt;MaaS: Stored
+    MaaS--&gt;&gt;User: 4. Return plaintext key ONCE (never stored)
+
+    Note over User,DB: Key is ready for model access</code></pre>
+<hr />
+<h2 id="api-key-validation-flow">API Key Validation Flow</h2>
+<p>When you use an API key for inference, the gateway validates it via the MaaS API before allowing the request.</p>
+<h3 id="validation-flow-diagram">Validation Flow Diagram</h3>
+<pre class="mermaid"><code>sequenceDiagram
+    participant User as Client
+    participant Gateway
+    participant AuthPolicy as MaaSAuthPolicy (Authorino)
+    participant MaaS as maas-api
+    participant DB as PostgreSQL
+    participant Model as Model Backend
+
+    Note over User,MaaS: Inference Request
+    User-&gt;&gt;Gateway: 1. Request with Authorization: Bearer sk-oai-*
+    Gateway-&gt;&gt;AuthPolicy: Route to MaaSAuthPolicy
+    AuthPolicy-&gt;&gt;MaaS: 2. POST /internal/v1/api-keys/validate (key)
+    MaaS-&gt;&gt;MaaS: Hash key, lookup by hash
+    MaaS-&gt;&gt;DB: 3. SELECT by key_hash
+    DB--&gt;&gt;MaaS: username, groups, subscription, status
+    MaaS-&gt;&gt;MaaS: Check status (active/revoked/expired)
+    MaaS--&gt;&gt;AuthPolicy: 4. valid: true, userId, groups, subscription
+    AuthPolicy-&gt;&gt;AuthPolicy: Subscription check, inject headers, rate limits
+    AuthPolicy-&gt;&gt;Model: 5. Authorized request (identity headers)
+    Model--&gt;&gt;Gateway: Response
+    Gateway--&gt;&gt;User: Response</code></pre>
+<p>The validation endpoint (<code>/internal/v1/api-keys/validate</code>) is called by Authorino on every request that bears an <code>sk-oai-*</code> token. It:</p>
+<ol>
+<li>Hashes the incoming key and looks it up in the database</li>
+<li>Returns <code>valid: true</code> with <code>userId</code>, <code>groups</code>, and <code>subscription</code> if the key is active and not expired</li>
+<li>Returns <code>valid: false</code> with a reason if the key is invalid, revoked, or expired</li>
+</ol>
+<hr />
+<h2 id="subscription-binding-and-priority">Subscription Binding and Priority</h2>
+<p>Each API key is bound to a single MaaSSubscription at creation time. This binding determines:</p>
+<ul>
+<li>Which models the key can access</li>
+<li>What rate limits apply</li>
+<li>Metadata attached to requests for observability</li>
+</ul>
+<h3 id="automatic-selection">Automatic Selection</h3>
+<p>When you create a key without specifying a <code>subscription</code>, the API selects the highest-priority accessible subscription:</p>
+<ol>
+<li>Filter to subscriptions where your groups match <code>spec.owner.groups</code></li>
+<li>Sort by <code>spec.priority</code> (descending)</li>
+<li>On ties, use deterministic ordering (e.g., token limit, then name)</li>
+<li>Select the first subscription</li>
+</ol>
+<h3 id="explicit-selection">Explicit Selection</h3>
+<p>Specify <code>"subscription": "name"</code> in the create request body to bind to a specific subscription. The API validates that you have access to that subscription (group membership check).</p>
+<h3 id="priority-ties">Priority Ties</h3>
+<p>If two MaaSSubscriptions have the same <code>spec.priority</code>, the controller logs a warning and sets the <code>SpecPriorityDuplicate</code> status condition. Operators should assign distinct priorities to avoid ambiguity. When ties occur, selection uses a deterministic fallback order.</p>
+<hr />
+<h2 id="group-membership-snapshots">Group Membership Snapshots</h2>
+<p>API keys store your group membership <strong>at creation time</strong>. This snapshot model has important implications:</p>
+<h3 id="why-snapshots">Why Snapshots?</h3>
+<ul>
+<li><strong>Performance</strong>: Validation doesn't require real-time group lookups on every inference request</li>
+<li><strong>Consistency</strong>: Your access level doesn't change mid-session</li>
+<li><strong>Auditability</strong>: Historical requests show exactly what groups were active</li>
+</ul>
+<h3 id="when-groups-change">When Groups Change</h3>
+<p>If your group membership changes (role change, offboarding, promotion), existing API keys retain the <strong>old</strong> groups and subscription until revoked. This is intentional for the reasons above, but requires active key management:</p>
+<p><strong>Administrators must revoke keys when:</strong>
+- User leaves the organization
+- User's role changes significantly
+- Security incident requires immediate access revocation</p>
+<p>See <a href="../../configuration-and-management/api-key-administration/">API Key Administration</a> for bulk revocation procedures.</p>
+<hr />
+<h2 id="related-documentation">Related Documentation</h2>
+<p><strong>User Guides:</strong>
+- <a href="../../user-guide/api-key-management/">API Key Management</a> - Creating and managing keys
+- <a href="../../user-guide/model-discovery/">Model Discovery</a> - Listing available models
+- <a href="../../user-guide/inference/">Inference</a> - Making inference requests</p>
+<p><strong>Concepts:</strong>
+- <a href="../model-access-control/">Model Access Control</a> - How model discovery and access decisions work
+- <a href="../subscription-overview/">Access and Quota Overview</a> - How policies and subscriptions work</p>
+<p><strong>Administration:</strong>
+- <a href="../../configuration-and-management/api-key-administration/">API Key Administration</a> - Bulk revocation and cleanup</p>
 
 
 
@@ -3145,7 +3205,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 5, 2026 15:44:36 UTC">May 5, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 29, 2026 19:59:56 UTC">April 29, 2026</span>
   </span>
 
     
@@ -3155,7 +3215,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 15:47:11 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 29, 2026 19:59:56 UTC">April 29, 2026</span>
   </span>
 
     
@@ -3210,10 +3270,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "search.suggest", "search.boost", "navigation.instant"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "search.suggest", "search.boost", "navigation.instant"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

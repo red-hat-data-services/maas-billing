@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://opendatahub-io.github.io/models-as-a-service/dev/configuration-and-management/subscription-known-issues/">
+        <link rel="canonical" href="https://opendatahub-io.github.io/models-as-a-service/dev/architecture-internals/controller-architecture/">
       
       
-        <link rel="prev" href="../tls-configuration/">
+        <link rel="prev" href="../../user-guide/inference/">
       
       
-        <link rel="next" href="../model-setup/">
+        <link rel="next" href="../reconciliation-flow/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>Subscription limitations & known issues - ODH Models-as-a-Service Documentation</title>
+        <title>Controller Architecture - ODH Models-as-a-Service Documentation</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#subscription-limitations-and-known-issues" class="md-skip">
+        <a href="#maas-controller-architecture" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Subscription limitations & known issues
+              Controller Architecture
             
           </span>
         </div>
@@ -289,8 +289,6 @@
   
   
   
-    
-  
   
     
     
@@ -298,13 +296,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../quota-and-access-configuration/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../configuration-and-management/quota-and-access-configuration/" class="md-tabs__link">
           
   
   
@@ -327,7 +323,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../user-guide/self-service-model-access/" class="md-tabs__link">
+        <a href="../../user-guide/api-key-management/" class="md-tabs__link">
           
   
   
@@ -343,15 +339,17 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../contributing/testing-guide/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
           
   
   
-  Contributing
+  Developer Guide
 
         </a>
       </li>
@@ -615,6 +613,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration/upgrade-3.2-to-3.4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrade 3.2 to 3.4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -783,6 +809,62 @@
     
   
     Model Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/api-key-authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Key Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/model-access-control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Access Control
   
 
     
@@ -1099,7 +1181,35 @@
   <span class="md-ellipsis">
     
   
-    Model Setup (On Cluster)
+    Model Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../install/external-model-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    External Model Setup (Tech Preview)
   
 
     
@@ -1188,31 +1298,28 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
@@ -1230,7 +1337,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1245,31 +1352,28 @@
                 
   
   
-    
   
   
-  
     
     
     
     
       
       
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
         
           
-          
         
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_1" >
         
           
-          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
             
   
   
@@ -1287,7 +1391,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4_1">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1305,7 +1409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quota-and-access-configuration/" class="md-nav__link">
+      <a href="../../configuration-and-management/quota-and-access-configuration/" class="md-nav__link">
         
   
   
@@ -1333,14 +1437,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../token-management/" class="md-nav__link">
+      <a href="../../configuration-and-management/api-key-administration/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Token Management
+    API Key Administration
   
 
     
@@ -1361,7 +1465,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../namespace-rbac/" class="md-nav__link">
+      <a href="../../configuration-and-management/namespace-rbac/" class="md-nav__link">
         
   
   
@@ -1389,7 +1493,35 @@
   
   
     <li class="md-nav__item">
-      <a href="../tls-configuration/" class="md-nav__link">
+      <a href="../../configuration-and-management/troubleshooting-external-model-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting ExternalModel RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration-and-management/tls-configuration/" class="md-nav__link">
         
   
   
@@ -1414,44 +1546,17 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Subscription limitations & known issues
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../configuration-and-management/gateway-patterns/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Subscription limitations & known issues
+    Gateway Patterns
   
 
     
@@ -1460,104 +1565,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#subscription-selection-caching" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Subscription Selection Caching
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Subscription Selection Caching">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#cache-ttl-for-subscription-selection" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cache TTL for Subscription Selection
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api-key-vs-openshift-token" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        API Key vs OpenShift Token
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="API Key vs OpenShift Token">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#group-snapshot-in-api-keys" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Group Snapshot in API Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#token-rate-limits-when-multiple-model-references-share-one-httproute" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Token rate limits when multiple model references share one HTTPRoute
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#related-documentation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Related Documentation
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1584,13 +1591,10 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
@@ -1599,7 +1603,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
         
           
-          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
             
   
   
@@ -1635,14 +1639,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../model-setup/" class="md-nav__link">
+      <a href="../../configuration-and-management/model-setup/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Model Setup (On Cluster)
+    Model Setup
   
 
     
@@ -1663,7 +1667,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../model-listing-flow/" class="md-nav__link">
+      <a href="../../configuration-and-management/model-listing-flow/" class="md-nav__link">
         
   
   
@@ -1684,34 +1688,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../maas-model-kinds/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    MaaS Model Kinds
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1733,13 +1709,10 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
@@ -1748,128 +1721,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
         
           
-          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    MaaS Controller
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    MaaS Controller
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../maas-controller-overview/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Controller Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../crd-annotations/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CRD Annotations
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-          
-          
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
             
   
   
@@ -1887,8 +1739,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1912,35 +1764,7 @@
   <span class="md-ellipsis">
     
   
-    Observability
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../advanced-administration/limitador-persistence/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Limitador Persistence
+    Observability Dashboard
   
 
     
@@ -1989,7 +1813,35 @@
   
   
     <li class="md-nav__item">
-      <a href="../authorino-caching/" class="md-nav__link">
+      <a href="../../advanced-administration/limitador-persistence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitador Persistence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration-and-management/authorino-caching/" class="md-nav__link">
         
   
   
@@ -2086,14 +1938,70 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/self-service-model-access/" class="md-nav__link">
+      <a href="../../user-guide/api-key-management/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Self Service Model Access
+    API Key Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/model-discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/inference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inference
   
 
     
@@ -2118,6 +2026,321 @@
       
   
   
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controller Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controller Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-the-maas-controller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is the MaaS Controller?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-level-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Level Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interaction-with-maas-api-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction with MaaS API (discovery)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-diagram-controller-internals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Component Diagram (Controller Internals)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-controller-creates-runtime-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the Controller Creates (Runtime View)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-model-simplified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Model (Simplified)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="References">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#other-internals-this-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other internals (this guide)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-and-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install and operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#discovery-and-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery and API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architecture-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture context
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reconciliation-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authentication-internals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication Internals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
   
   
     
@@ -2127,19 +2350,22 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_4" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="">
             
   
   
@@ -2157,8 +2383,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2191,6 +2417,42 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/release-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -2479,6 +2741,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/crds/tenant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tenant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2521,22 +2811,121 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#subscription-selection-caching" class="md-nav__link">
+  <a href="#what-is-the-maas-controller" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Subscription Selection Caching
+        What Is the MaaS Controller?
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Subscription Selection Caching">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-level-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Level Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interaction-with-maas-api-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction with MaaS API (discovery)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-diagram-controller-internals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Component Diagram (Controller Internals)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-controller-creates-runtime-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the Controller Creates (Runtime View)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-model-simplified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Model (Simplified)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="References">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#cache-ttl-for-subscription-selection" class="md-nav__link">
+  <a href="#other-internals-this-guide" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cache TTL for Subscription Selection
+        Other internals (this guide)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-and-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install and operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#discovery-and-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery and API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architecture-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture context
       
     </span>
   </a>
@@ -2545,56 +2934,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api-key-vs-openshift-token" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        API Key vs OpenShift Token
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="API Key vs OpenShift Token">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#group-snapshot-in-api-keys" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Group Snapshot in API Keys
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#token-rate-limits-when-multiple-model-references-share-one-httproute" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Token rate limits when multiple model references share one HTTPRoute
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#related-documentation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Related Documentation
-      
-    </span>
-  </a>
   
 </li>
       
@@ -2618,79 +2957,208 @@
   
 
 
-<h1 id="subscription-limitations-and-known-issues">Subscription limitations and known issues</h1>
-<p>This document describes known issues and operational considerations for the subscription-based MaaS Platform.</p>
-<h2 id="subscription-selection-caching">Subscription Selection Caching</h2>
-<h3 id="cache-ttl-for-subscription-selection">Cache TTL for Subscription Selection</h3>
-<p><strong>Impact:</strong> Medium</p>
-<p><strong>Description:</strong></p>
-<p>Authorino caches the result of the MaaS API subscription selection call (e.g., 60 second TTL). If a user's group membership changes:</p>
-<ul>
-<li>Within the cache window, the old subscription selection may still apply</li>
-<li>After cache expiry, the new group membership is used</li>
-<li>Restarting Authorino pods forces immediate cache invalidation (disruptive)</li>
-</ul>
-<p><strong>Workaround:</strong></p>
-<ul>
-<li>Wait for cache TTL for changes to fully propagate</li>
-<li>For immediate effect, restart Authorino pods (disruptive; use during maintenance windows)</li>
-</ul>
-<h2 id="api-key-vs-openshift-token">API Key vs OpenShift Token</h2>
-<h3 id="group-snapshot-in-api-keys">Group Snapshot in API Keys</h3>
-<p><strong>Impact:</strong> Medium</p>
-<p><strong>Description:</strong></p>
-<p>API keys store the user's groups and bound subscription name at creation time. If a user's group membership changes after the key was created:</p>
-<ul>
-<li>The key still carries the <strong>old</strong> groups and subscription until it is revoked and recreated</li>
-<li>Subscription metadata for gateway inference uses the stored groups and subscription from validation</li>
-<li>The user must create a new API key to pick up new groups or a different default subscription</li>
-</ul>
-<p><strong>Workaround:</strong></p>
-<ul>
-<li>Revoke and recreate API keys when users change groups</li>
-<li>Use OpenShift tokens for interactive use when group membership changes frequently (tokens reflect live group membership)</li>
-</ul>
-<h2 id="token-rate-limits-when-multiple-model-references-share-one-httproute">Token rate limits when multiple model references share one HTTPRoute</h2>
-<p><strong>Impact:</strong> High</p>
-<p><strong>Description:</strong></p>
-<p>When more than one <strong>MaaSModelRef</strong> resolves to the <strong>same</strong> <strong>HTTPRoute</strong>, the controller creates multiple <strong>TokenRateLimitPolicy</strong> resources targeting that route. Kuadrant then <strong>enforces only one</strong> of them in practice, so <strong>per-subscription token limits may not all apply</strong> even though CRs look valid.</p>
-<p>The <strong>MaaS controller</strong> treats a TRLP as healthy for <strong>MaaSSubscription</strong> status using the Kuadrant <strong><code>Accepted</code></strong> condition on each <code>TokenRateLimitPolicy</code>. Kuadrant also publishes runtime conditions such as <strong><code>Enforced</code></strong>; when multiple TRLPs conflict on one route you may see <strong><code>Enforced</code></strong> = True on one policy and <strong><code>Overridden</code></strong> (or similar) on others—check <strong><code>status.conditions</code></strong> (and <strong><code>reason</code></strong> / <strong><code>message</code></strong>) on each TRLP.</p>
-<p><strong>Detection:</strong></p>
-<p>List TRLPs that target an HTTPRoute, then inspect <strong><code>Accepted</code></strong> (controller readiness) and <strong><code>Enforced</code></strong> (gateway application):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># List TRLPs that target an HTTPRoute (namespace/name → route name)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>kubectl<span class="w"> </span>get<span class="w"> </span>tokenratelimitpolicy<span class="w"> </span>-A<span class="w"> </span>-o<span class="w"> </span>json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.items[] | select(.spec.targetRef.kind==&quot;HTTPRoute&quot;) | &quot;\(.metadata.namespace)/\(.metadata.name) → \(.spec.targetRef.name)&quot;&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Accepted + Enforced condition status per TRLP (needs jq; if this fails, use kubectl describe on each TRLP)</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>kubectl<span class="w"> </span>get<span class="w"> </span>tokenratelimitpolicy<span class="w"> </span>-A<span class="w"> </span>-o<span class="w"> </span>json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="s1">  .items[] | select(.spec.targetRef.kind == &quot;HTTPRoute&quot;)</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="s1">  | . as $i</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="s1">  | (($i.status.conditions // []) | map(select(.type == &quot;Accepted&quot;)) | .[0]) as $a</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="s1">  | (($i.status.conditions // []) | map(select(.type == &quot;Enforced&quot;)) | .[0]) as $e</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="s1">  | [</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="s1">      $i.metadata.namespace,</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="s1">      $i.metadata.name,</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="s1">      $i.spec.targetRef.name,</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="s1">      (($a // {}) | .status // &quot;?&quot;),</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="s1">      (($e // {}) | .status // &quot;?&quot;),</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="s1">      (($e // {}) | .reason // &quot;&quot;)</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="s1">    ] | @tsv&#39;</span>
-</code></pre></div>
-<p><strong>How to recognize it:</strong> Several TRLPs share the same <code>spec.targetRef.name</code>. Compare <strong><code>Accepted</code></strong> (what the MaaS controller uses for subscription readiness) and <strong><code>Enforced</code></strong> / <strong><code>reason</code></strong> (for example <strong><code>Overridden</code></strong>) on each policy—one route may show one TRLP fully effective and others superseded.</p>
-<p><strong>Workarounds:</strong></p>
+<h1 id="maas-controller-architecture">MaaS Controller Architecture</h1>
+<p>This document provides a technical deep-dive into the MaaS Controller architecture, internal components, and resource model.</p>
+<hr />
+<h2 id="what-is-the-maas-controller">What Is the MaaS Controller?</h2>
+<p>The <strong>MaaS Controller</strong> is a Kubernetes controller with two main responsibilities:</p>
 <ol>
-<li><strong>Dedicated routes per model</strong> — Deploy each model with its own HTTPRoute to ensure independent rate limiting</li>
-<li><strong>Shared subscription design</strong> — If models share an <strong>HTTPRoute</strong>, use <strong>one</strong> <strong>MaaSSubscription</strong> that lists every <strong>MaaSModelRef</strong> on that route so you are not applying <strong>different</strong> subscription limits to the same route. The controller may still create <strong>one TRLP per model ref</strong>; <strong>prefer (1)</strong> when each subscription must enforce limits independently until <strong>Tracking</strong> below ships.</li>
-<li><strong>Route consolidation by tier</strong> — <strong>Yes:</strong> if <strong>multiple</strong> <strong>MaaSModelRef</strong> resources still target the <strong>same</strong> <strong>HTTPRoute</strong>, you still get <strong>multiple TRLPs</strong>; grouping models by tier on shared routes does <strong>not</strong> change that by itself. Treat “premium” vs “free” as an operational label only. This pattern is <strong>only</strong> appropriate when <strong>every</strong> model on that shared route is meant to share <strong>one</strong> <strong>MaaSSubscription</strong> and a consistent <strong>MaaSAuthPolicy</strong> access story—<strong>not</strong> when different teams or subscriptions each register their own model refs on one route. If you need <strong>separate</strong> subscriptions with <strong>separate</strong> limits on the same route, use <strong>dedicated routes per model</strong> (1).</li>
-</ol>
-<p><strong>Status in v3.4:</strong></p>
-<p>This limitation <strong>remains in Models-as-a-Service v3.4</strong>. The fix requiring merge strategy support for TokenRateLimitPolicy is not included. Plan your model deployment topology accordingly.</p>
-<p><strong>Tracking:</strong> <a href="https://github.com/opendatahub-io/models-as-a-service/pull/585">opendatahub-io/models-as-a-service#585</a> proposes the controller change for coexisting token rate limit policies on a shared route.</p>
-<h2 id="related-documentation">Related Documentation</h2>
+<li>
+<p><strong>Tenant reconciler</strong> — deploys and manages the MaaS platform workloads (<code>maas-api</code>, gateway policies, telemetry, DestinationRule) via the <strong><code>Tenant</code></strong> CR (<code>maas.opendatahub.io/v1alpha1</code>). On startup the controller self-bootstraps a <code>default-tenant</code> CR in the <code>models-as-a-service</code> namespace if one does not exist. The Tenant reconciler renders embedded kustomize manifests at runtime and applies them via Server-Side Apply (SSA).</p>
+</li>
+<li>
+<p><strong>Subscription reconcilers</strong> — let platform operators define:</p>
 <ul>
-<li><a href="../token-management/">Understanding Token Management</a></li>
-<li><a href="../../concepts/subscription-overview/">Access and Quota Overview</a></li>
-<li><a href="../quota-and-access-configuration/">Quota and Access Configuration</a></li>
-<li><a href="../maas-controller-overview/">MaaS Controller Overview</a></li>
+<li><strong>Which models</strong> are exposed through MaaS (via <strong>MaaSModelRef</strong>).</li>
+<li><strong>Who can access</strong> those models (via <strong>MaaSAuthPolicy</strong>).</li>
+<li><strong>Per-user/per-group token rate limits</strong> for those models (via <strong>MaaSSubscription</strong>).</li>
+</ul>
+</li>
+</ol>
+<p>The controller does not run inference. It <strong>reconciles</strong> your high-level MaaS CRs into the underlying Gateway API and Kuadrant resources (HTTPRoutes, AuthPolicies, TokenRateLimitPolicies) that enforce routing, authentication, and rate limiting at the gateway.</p>
+<hr />
+<h2 id="high-level-architecture">High-Level Architecture</h2>
+<pre class="mermaid"><code>flowchart TB
+    subgraph Platform["Platform lifecycle"]
+        Tenant["Tenant CR\n(default-tenant)"]
+    end
+
+    subgraph Operator["Platform operator"]
+        MaaSModelRef["MaaSModelRef"]
+        MaaSAuthPolicy["MaaSAuthPolicy"]
+        MaaSSubscription["MaaSSubscription"]
+    end
+
+    subgraph Controller["maas-controller"]
+        TenantReconciler["Tenant\nReconciler"]
+        ModelReconciler["MaaSModelRef\nReconciler"]
+        AuthReconciler["MaaSAuthPolicy\nReconciler"]
+        SubReconciler["MaaSSubscription\nReconciler"]
+    end
+
+    subgraph PlatformWorkloads["Platform Workloads"]
+        MaaSAPI["maas-api\n(Deployment, Service, HTTPRoute)"]
+        GatewayPolicies["Gateway default policies\n(AuthPolicy, TokenRateLimitPolicy)"]
+        Telemetry["TelemetryPolicy\nIstio Telemetry"]
+    end
+
+    subgraph GatewayStack["Gateway API + Kuadrant"]
+        HTTPRoute["HTTPRoute"]
+        AuthPolicy["AuthPolicy\n(Kuadrant)"]
+        TokenRateLimitPolicy["TokenRateLimitPolicy\n(Kuadrant)"]
+    end
+
+    subgraph Backend["Backend"]
+        LLMIS["LLMInferenceService\n(KServe)"]
+    end
+
+    Tenant --&gt; TenantReconciler
+    TenantReconciler --&gt; MaaSAPI
+    TenantReconciler --&gt; GatewayPolicies
+    TenantReconciler --&gt; Telemetry
+
+    MaaSModelRef --&gt; ModelReconciler
+    MaaSAuthPolicy --&gt; AuthReconciler
+    MaaSSubscription --&gt; SubReconciler
+
+    ModelReconciler --&gt; HTTPRoute
+    AuthReconciler --&gt; AuthPolicy
+    SubReconciler --&gt; TokenRateLimitPolicy
+
+    HTTPRoute --&gt; AuthPolicy
+    HTTPRoute --&gt; TokenRateLimitPolicy
+    HTTPRoute --&gt; LLMIS</code></pre>
+<p><strong>Summary:</strong> The controller has two sides: the <strong>Tenant reconciler</strong> deploys and manages the MaaS platform workloads (maas-api, gateway policies, telemetry) from the <code>Tenant</code> CR; the <strong>subscription reconcilers</strong> turn MaaS CRs into Gateway/Kuadrant resources that attach to per-model HTTPRoutes and backends (e.g. KServe LLMInferenceService).</p>
+<hr />
+<h2 id="interaction-with-maas-api-discovery">Interaction with MaaS API (discovery)</h2>
+<p>The <strong>MaaS API</strong> is deployed as part of the <strong>Tenant</strong> platform bundle; it is not the same process as <strong>maas-controller</strong>, but the two work together: the controller <strong>reconciles</strong> <strong>MaaSModelRef</strong> and related CRs, and the API <strong>lists</strong> models from that cluster state for <strong>GET /v1/models</strong>.</p>
+<p>For <strong>GET /v1/models</strong>, the MaaS API uses <strong>MaaSModelRef</strong> CRs as its primary source: it reads them cluster-wide (all namespaces), then <strong>validates access</strong> by probing each model's <code>/v1/models</code> endpoint with the client's <strong>Authorization</strong> header (passed through as-is). Only models that return 2xx or 405 are included. The catalogue returned to the client is the set of MaaSModelRef objects the controller reconciles, filtered to those the client can access. <strong>No</strong> token exchange is performed; the header is forwarded as-is.</p>
+<div class="admonition warning">
+<p class="admonition-title">Trust boundary: model discovery</p>
+<p>The GET /v1/models flow forwards raw <strong>Authorization</strong> headers to model workloads during access validation. That creates a trust boundary:
+- <strong>Model workloads must not log or forward raw Authorization headers</strong> during discovery probes
+- <strong>Operators should only register models trusted to handle credentials safely</strong> via MaaSModelRef
+- For additional protections on model inference routes, see <a href="../authentication-internals/">Authentication Internals</a>
+- Future enhancements may include token exchange or credential mediation to reduce exposure during discovery</p>
+</div>
+<p>For end-user behavior and examples, see <a href="../../user-guide/model-discovery/">Model Discovery</a> and <a href="../../configuration-and-management/model-listing-flow/">Model listing flow</a>.</p>
+<hr />
+<h2 id="component-diagram-controller-internals">Component Diagram (Controller Internals)</h2>
+<pre class="mermaid"><code>flowchart TB
+    subgraph Cluster["Kubernetes cluster"]
+        subgraph maas_controller["maas-controller (Deployment)"]
+            Manager["Controller Manager"]
+            TenantReconciler["Tenant\nReconciler"]
+            ModelReconciler["MaaSModelRef\nReconciler"]
+            AuthReconciler["MaaSAuthPolicy\nReconciler"]
+            SubReconciler["MaaSSubscription\nReconciler"]
+        end
+
+        CRDs["CRDs: Tenant,\nMaaSModelRef,\nMaaSAuthPolicy,\nMaaSSubscription"]
+        RBAC["RBAC: ClusterRole,\nServiceAccount, etc."]
+    end
+
+    Watch["Watch MaaS CRs,\nGateway API, Kuadrant,\nLLMInferenceService"]
+    Manager --&gt; TenantReconciler
+    Manager --&gt; ModelReconciler
+    Manager --&gt; AuthReconciler
+    Manager --&gt; SubReconciler
+    TenantReconciler --&gt; Watch
+    ModelReconciler --&gt; Watch
+    AuthReconciler --&gt; Watch
+    SubReconciler --&gt; Watch
+    CRDs --&gt; Watch
+    RBAC --&gt; maas_controller</code></pre>
+<ul>
+<li>Single binary: <strong>manager</strong> runs four reconcilers (Tenant + three subscription reconcilers).</li>
+<li>Registers <strong>Kubernetes core</strong>, <strong>Gateway API</strong>, <strong>KServe (v1alpha1)</strong>, and <strong>MaaS (v1alpha1)</strong> schemes; uses <strong>unstructured</strong> for Kuadrant resources.</li>
+<li>Reads/writes MaaS CRs, HTTPRoutes, Gateways, AuthPolicies, TokenRateLimitPolicies, and LLMInferenceServices (read-only for model metadata/routes).</li>
+</ul>
+<hr />
+<h2 id="what-the-controller-creates-runtime-view">What the Controller Creates (Runtime View)</h2>
+<pre class="mermaid"><code>flowchart LR
+    subgraph MaaS["MaaS CRs (your intent)"]
+        MM["MaaSModelRef\n(model ref)"]
+        MAP["MaaSAuthPolicy\n(modelRefs + subjects)"]
+        MS["MaaSSubscription\n(owner + modelRefs + limits)"]
+    end
+
+    subgraph Generated["Generated (per model / route)"]
+        HR["HTTPRoute"]
+        AP["AuthPolicy"]
+        TRL["TokenRateLimitPolicy"]
+    end
+
+    MM --&gt; HR
+    MAP --&gt; AP
+    MS --&gt; TRL
+    HR --&gt; AP
+    HR --&gt; TRL</code></pre>
+<table>
+<thead>
+<tr>
+<th>Your resource</th>
+<th>Controller creates / uses</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MaaSModelRef</strong></td>
+<td><strong>HTTPRoute</strong> (or validates KServe-created route for LLMInferenceService)</td>
+</tr>
+<tr>
+<td><strong>MaaSAuthPolicy</strong></td>
+<td>One <strong>AuthPolicy</strong> per referenced model; targets that model's HTTPRoute</td>
+</tr>
+<tr>
+<td><strong>MaaSSubscription</strong></td>
+<td>One <strong>TokenRateLimitPolicy</strong> per referenced model; targets that model's HTTPRoute</td>
+</tr>
+</tbody>
+</table>
+<p>All generated resources are labeled <code>app.kubernetes.io/managed-by: maas-controller</code>.</p>
+<hr />
+<h2 id="data-model-simplified">Data Model (Simplified)</h2>
+<pre class="mermaid"><code>erDiagram
+    MaaSModelRef ||--o{ HTTPRoute : "creates or validates"
+    MaaSModelRef }o--|| LLMInferenceService : "references (kind: LLMInferenceService)"
+    MaaSAuthPolicy ||--o{ AuthPolicy : "one per model"
+    MaaSAuthPolicy }o--o{ MaaSModelRef : "modelRefs"
+    MaaSSubscription ||--o{ TokenRateLimitPolicy : "one per model"
+    MaaSSubscription }o--o{ MaaSModelRef : "modelRefs"
+    AuthPolicy }o--|| HTTPRoute : "targetRef"
+    TokenRateLimitPolicy }o--|| HTTPRoute : "targetRef"
+    HTTPRoute }o--|| Gateway : "parentRef"</code></pre>
+<ul>
+<li><strong>MaaSModelRef</strong>: <code>spec.modelRef.kind</code> = LLMInferenceService or ExternalModel; <code>spec.modelRef.name</code> = name of the referenced model resource.</li>
+<li><strong>MaaSAuthPolicy</strong>: <code>spec.modelRefs</code> (list of ModelRef objects with name and namespace), <code>spec.subjects</code> (groups, users).</li>
+<li><strong>MaaSSubscription</strong>: <code>spec.owner</code> (groups, users), <code>spec.modelRefs</code> (list of ModelSubscriptionRef objects with name, namespace, and required <code>tokenRateLimits</code> array to define per-model rate limits).</li>
+</ul>
+<hr />
+<h2 id="references">References</h2>
+<h3 id="other-internals-this-guide">Other internals (this guide)</h3>
+<ul>
+<li><a href="../reconciliation-flow/">Reconciliation Flow</a> — Ownership, watches, status, deletion lifecycle</li>
+<li><a href="../authentication-internals/">Authentication Internals</a> — Subscription selection, TRLP keys, identity context</li>
+</ul>
+<h3 id="install-and-operations">Install and operations</h3>
+<ul>
+<li><a href="../../install/maas-setup/">MaaS Setup</a> — Platform install, <strong>Tenant</strong> CR, gateway</li>
+<li><a href="../../install/validation/">Validation</a> — Post-install checks</li>
+<li><a href="../../install/troubleshooting/">Troubleshooting</a> — Common failures</li>
+<li><a href="../../concepts/subscription-overview/">Access and Quota Overview</a> — Subscriptions and access model</li>
+<li><a href="../../configuration-and-management/quota-and-access-configuration/">Quota and Access Configuration</a> — Quotas, auth policies, subscriptions</li>
+</ul>
+<h3 id="discovery-and-api">Discovery and API</h3>
+<ul>
+<li><a href="../../user-guide/model-discovery/">Model Discovery</a> — Using <strong>GET /v1/models</strong> from a client perspective</li>
+<li><a href="../../user-guide/inference/">Inference</a> — Calling inference endpoints</li>
+<li><a href="../../configuration-and-management/model-listing-flow/">Model Listing Flow</a> — How listing fits the platform</li>
+<li><a href="../../reference/maas-api-overview/">MaaS API Overview</a> — REST surface (discovery, keys, admin)</li>
+</ul>
+<h3 id="architecture-context">Architecture context</h3>
+<ul>
+<li><a href="../../concepts/architecture/">Architecture</a> — Product-level architecture (Concepts)</li>
 </ul>
 
 
@@ -2714,7 +3182,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 17, 2026 02:14:44 UTC">April 17, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 6, 2026 15:15:25 UTC">May 6, 2026</span>
   </span>
 
     
@@ -2724,7 +3192,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 15:47:11 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 6, 2026 15:15:25 UTC">May 6, 2026</span>
   </span>
 
     
