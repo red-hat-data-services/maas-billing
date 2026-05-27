@@ -19,6 +19,7 @@ Use this platform to streamline the deployment of your models, monitor usage, an
 - **[Subscription limitations and known issues](configuration-and-management/subscription-known-issues.md)** - Rate limits on shared routes, API keys, caching, and other planning notes
 - **[Model Setup (On Cluster)](configuration-and-management/model-setup.md)** - Setting up models for MaaS
 - **[Self-Service Model Access](user-guide/self-service-model-access.md)** - Managing model access and policies
+- **[Gateway Patterns](configuration-and-management/gateway-patterns.md)** - Curated Gateway API deployment patterns
 
 ### 📋 Release Notes
 
