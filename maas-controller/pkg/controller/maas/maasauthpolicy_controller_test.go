@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -629,6 +630,120 @@ func TestMaaSAuthPolicyReconciler_MultiplePoliciesDeletion(t *testing.T) {
 	if err := c.Get(context.Background(), types.NamespacedName{Name: gatewayDefaultAuthPolicyName, Namespace: gatewayNS}, defaultAuth); err != nil {
 		t.Errorf("gateway-default-auth should be recreated after last MaaSAuthPolicy is deleted: %v", err)
 	}
+
+	// Verify the recreated policy scopes deny-all to model inference paths only,
+	// so management endpoints (/v1/*, /maas-api/*) remain accessible.
+	defaults, ok, _ := unstructured.NestedMap(defaultAuth.Object, "spec", "defaults")
+	if !ok {
+		t.Fatal("gateway-default-auth missing spec.defaults")
+	}
+	whenSlice, ok, _ := unstructured.NestedSlice(defaults, "when")
+	if !ok || len(whenSlice) == 0 {
+		t.Fatal("gateway-default-auth should have a 'when' predicate to scope deny-all to model inference paths")
+	}
+	whenEntry, entryOk := whenSlice[0].(map[string]any)
+	if !entryOk {
+		t.Fatal("gateway-default-auth 'when' entry is not a map")
+	}
+	predicate, ok, _ := unstructured.NestedString(whenEntry, "predicate")
+	if !ok || predicate == "" {
+		t.Fatal("gateway-default-auth 'when' predicate should not be empty")
+	}
+	if predicate != celModelIdentityAvailable {
+		t.Errorf("gateway-default-auth 'when' predicate mismatch:\ngot:  %s\nwant: %s", predicate, celModelIdentityAvailable)
+	}
+}
+
+// TestMaaSAuthPolicyReconciler_EnsureDefaultAuthUpgrade verifies that
+// ensureGatewayDefaultAuthPolicy updates an existing gateway-default-auth that
+// was created by an older controller version without the 'when' predicate.
+func TestMaaSAuthPolicyReconciler_EnsureDefaultAuthUpgrade(t *testing.T) {
+	const gatewayNS = "gateway-ns"
+
+	oldPolicy := &unstructured.Unstructured{
+		Object: map[string]any{
+			"apiVersion": "kuadrant.io/v1",
+			"kind":       "AuthPolicy",
+			"metadata": map[string]any{
+				"name":      gatewayDefaultAuthPolicyName,
+				"namespace": gatewayNS,
+			},
+			"spec": map[string]any{
+				"targetRef": map[string]any{
+					"group": "gateway.networking.k8s.io",
+					"kind":  "Gateway",
+					"name":  "maas-gateway",
+				},
+				"defaults": map[string]any{
+					"rules": map[string]any{
+						"authentication": map[string]any{},
+						"authorization": map[string]any{
+							"deny-unconfigured-models": map[string]any{
+								"metrics":  false,
+								"priority": int64(0),
+								"patternMatching": map[string]any{
+									"patterns": []any{
+										map[string]any{
+											"operator": "eq",
+											"selector": "context.request.http.method",
+											"value":    "__deny_unconfigured_models__",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(oldPolicy).
+		Build()
+
+	rec := &MaaSAuthPolicyReconciler{
+		Client:           c,
+		GatewayNamespace: gatewayNS,
+		GatewayName:      "maas-gateway",
+	}
+
+	log := logr.Discard()
+	if err := rec.ensureGatewayDefaultAuthPolicy(context.Background(), log); err != nil {
+		t.Fatalf("ensureGatewayDefaultAuthPolicy failed: %v", err)
+	}
+
+	updated := &unstructured.Unstructured{}
+	updated.SetGroupVersionKind(schema.GroupVersionKind{Group: "kuadrant.io", Version: "v1", Kind: "AuthPolicy"})
+	if err := c.Get(context.Background(), types.NamespacedName{Name: gatewayDefaultAuthPolicyName, Namespace: gatewayNS}, updated); err != nil {
+		t.Fatalf("failed to get gateway-default-auth after update: %v", err)
+	}
+
+	defaults, ok, _ := unstructured.NestedMap(updated.Object, "spec", "defaults")
+	if !ok {
+		t.Fatal("gateway-default-auth missing spec.defaults after upgrade")
+	}
+	whenSlice, ok, _ := unstructured.NestedSlice(defaults, "when")
+	if !ok || len(whenSlice) == 0 {
+		t.Fatal("gateway-default-auth should have a 'when' predicate after upgrade")
+	}
+	whenEntry, entryOk := whenSlice[0].(map[string]any)
+	if !entryOk {
+		t.Fatal("gateway-default-auth 'when' entry is not a map")
+	}
+	predicate, ok, _ := unstructured.NestedString(whenEntry, "predicate")
+	if !ok || predicate == "" {
+		t.Fatal("gateway-default-auth 'when' predicate should not be empty after upgrade")
+	}
+	if predicate != celModelIdentityAvailable {
+		t.Errorf("gateway-default-auth 'when' predicate mismatch after upgrade:\ngot:  %s\nwant: %s", predicate, celModelIdentityAvailable)
+	}
+
+	// Calling again should be a no-op (unchanged)
+	if err := rec.ensureGatewayDefaultAuthPolicy(context.Background(), log); err != nil {
+		t.Fatalf("second call to ensureGatewayDefaultAuthPolicy failed: %v", err)
+	}
 }
 
 // TestMaaSAuthPolicyReconciler_CachingConfiguration verifies that the controller
@@ -1140,7 +1255,6 @@ func TestMaaSAuthPolicyReconciler_IdentityHeadersUpstream(t *testing.T) {
 		requiredHeaders := []string{
 			"X-MaaS-Username", "X-MaaS-Username-Token",
 			"X-MaaS-Group", "X-MaaS-Group-Token",
-			"X-MaaS-Tenant", "X-MaaS-Tenant-Token",
 			"X-MaaS-Subscription",
 		}
 		for _, header := range requiredHeaders {
@@ -1273,7 +1387,7 @@ func TestBuildGatewayAuthPolicySpec_K8sAndOIDCAuth(t *testing.T) {
 		}
 	})
 
-	t.Run("subscription-info has path-scoped when condition", func(t *testing.T) {
+	t.Run("subscription-info has model-route scoped when condition", func(t *testing.T) {
 		spec := r.buildGatewayAuthPolicySpec("{}", nil, "", "models-as-a-service", "test-gateway-ns", "test-gateway")
 		obj := gwSpecToUnstructured(t, spec)
 
@@ -1289,12 +1403,15 @@ func TestBuildGatewayAuthPolicySpec_K8sAndOIDCAuth(t *testing.T) {
 		if !ok {
 			t.Fatal("subscription-info when[0] has no predicate string")
 		}
-		if !contains(pred, "/llm/") {
-			t.Errorf("subscription-info when should scope to /llm/ paths, got: %s", pred)
+		if !contains(pred, "x-gateway-model-name") || !contains(pred, "maas-api") || !contains(pred, "v1") {
+			t.Errorf("subscription-info when should scope to model routes and exclude management paths, got: %s", pred)
+		}
+		if contains(pred, `startsWith("/llm/")`) {
+			t.Errorf("subscription-info when should not be hard-coded to /llm/ routes, got: %s", pred)
 		}
 	})
 
-	t.Run("subscription-valid has path-scoped when condition", func(t *testing.T) {
+	t.Run("subscription-valid has model-route scoped when condition", func(t *testing.T) {
 		spec := r.buildGatewayAuthPolicySpec("{}", nil, "", "models-as-a-service", "test-gateway-ns", "test-gateway")
 		obj := gwSpecToUnstructured(t, spec)
 
@@ -1310,8 +1427,27 @@ func TestBuildGatewayAuthPolicySpec_K8sAndOIDCAuth(t *testing.T) {
 		if !ok {
 			t.Fatal("subscription-valid when[0] has no predicate string")
 		}
-		if !contains(pred, "/llm/") {
-			t.Errorf("subscription-valid when should scope to /llm/ paths, got: %s", pred)
+		if !contains(pred, "x-gateway-model-name") || !contains(pred, "maas-api") || !contains(pred, "v1") {
+			t.Errorf("subscription-valid when should scope to model routes and exclude management paths, got: %s", pred)
+		}
+		if contains(pred, `startsWith("/llm/")`) {
+			t.Errorf("subscription-valid when should not be hard-coded to /llm/ routes, got: %s", pred)
+		}
+	})
+
+	t.Run("require-group-membership recognizes tenant model paths", func(t *testing.T) {
+		spec := r.buildGatewayAuthPolicySpec("{}", nil, "", "models-as-a-service", "test-gateway-ns", "test-gateway")
+		obj := gwSpecToUnstructured(t, spec)
+
+		rego, found, err := unstructured.NestedString(obj.Object, "spec", "defaults", "rules", "authorization", "require-group-membership", "opa", "rego")
+		if err != nil || !found {
+			t.Fatalf("require-group-membership rego missing: found=%v err=%v", found, err)
+		}
+		if !contains(rego, `path_parts[0] != "maas-api"`) || !contains(rego, `path_parts[0] != "v1"`) {
+			t.Errorf("require-group-membership rego should treat tenant model paths as model routes and exclude management paths, got: %s", rego)
+		}
+		if contains(rego, `startswith(request_path, "/llm/")`) {
+			t.Errorf("require-group-membership rego should not be hard-coded to /llm/ routes, got: %s", rego)
 		}
 	})
 
