@@ -1,6 +1,11 @@
 """
 E2E tests for tenant-scoped authentication and API-key isolation.
 
+Covers [MT S7] acceptance criteria (RHOAIENG-62570):
+- No cross-tenant key leakage (tests 3.3, 3.5, 3.6)
+- Identity isolation (tests 3.1, 3.2, 3.4, 3.6)
+- Negative paths for cross-tenant access (tests 3.3, 3.6)
+
 These tests use shared_test_tenants fixture to create two AITenant instances
 and validate API key isolation between tenants.
 """
@@ -9,6 +14,7 @@ import os
 import uuid
 
 import pytest
+import requests
 
 from multitenancy_helpers import (
     create_api_key_at,
@@ -25,6 +31,56 @@ from multitenancy_helpers import (
     validate_api_key_at,
 )
 from test_helper import _get_cluster_token, _delete_cr
+
+
+def _mint_oidc_token_for_tenant(tenant: str) -> str:
+    """Return a fresh OIDC access token for the given tenant ('a' or 'b').
+
+    Resolution order:
+    1. OIDC_TOKEN_TENANT_A / OIDC_TOKEN_TENANT_B — pre-minted static tokens
+       (backward-compat; note these expire in ~60s so may be stale by test time).
+    2. OIDC_TOKEN_URL (tenant a) / OIDC_TOKEN_URL_TENANT_B — mint a fresh token
+       via the Resource Owner Password Grant.
+
+    Returns an empty string if no token source is available so the caller can
+    skip the test gracefully.
+    """
+    static_key = f"OIDC_TOKEN_TENANT_{tenant.upper()}"
+    static = os.environ.get(static_key, "")
+    if static:
+        return static
+
+    if tenant == "a":
+        token_url = os.environ.get("OIDC_TOKEN_URL", "")
+        username = os.environ.get("OIDC_USERNAME", "alice_lead")
+        password = os.environ.get("OIDC_PASSWORD", "letmein")
+        client_id = os.environ.get("OIDC_CLIENT_ID", "test-client")
+    else:
+        token_url = os.environ.get("OIDC_TOKEN_URL_TENANT_B", "")
+        username = os.environ.get("OIDC_USERNAME_TENANT_B", "charlie_sec_lead")
+        password = os.environ.get("OIDC_PASSWORD_TENANT_B", "letmein")
+        client_id = os.environ.get("OIDC_CLIENT_ID_TENANT_B", "test-client")
+
+    if not token_url:
+        return ""
+
+    verify = os.environ.get("E2E_SKIP_TLS_VERIFY", "").lower() != "true"
+    try:
+        resp = requests.post(
+            token_url,
+            data={
+                "grant_type": "password",
+                "client_id": client_id,
+                "username": username,
+                "password": password,
+            },
+            timeout=30,
+            verify=verify,
+        )
+        resp.raise_for_status()
+        return resp.json().get("access_token", "")
+    except Exception:
+        return ""
 
 
 # Tenant auth isolation tests are enabled by default (Phase 1 implementation)
@@ -147,10 +203,13 @@ class TestTenantAuthIsolation:
 
     def test_oidc_token_validation_per_tenant(self, tenant_env):
         """3.4: Tenant OIDC tokens are accepted only by their configured tenant endpoint."""
-        token_a = os.environ.get("OIDC_TOKEN_TENANT_A", "")
-        token_b = os.environ.get("OIDC_TOKEN_TENANT_B", "")
+        token_a = _mint_oidc_token_for_tenant("a")
+        token_b = _mint_oidc_token_for_tenant("b")
         if not token_a or not token_b:
-            pytest.skip("OIDC_TOKEN_TENANT_A and OIDC_TOKEN_TENANT_B are required for per-tenant OIDC validation")
+            pytest.skip(
+                "Per-tenant OIDC tokens unavailable — set OIDC_TOKEN_URL (tenant-a) and "
+                "OIDC_TOKEN_URL_TENANT_B (tenant-b), or OIDC_TOKEN_TENANT_A / OIDC_TOKEN_TENANT_B"
+            )
 
         tenant_a, tenant_b = tenant_env
         response_a = search_api_keys_at(tenant_a["base_url"], token_a)
@@ -183,6 +242,37 @@ class TestTenantAuthIsolation:
         ids_b = {item["id"] for item in response_b.json().get("data", [])}
         assert tenant_api_keys["b"]["id"] in ids_b
         assert tenant_api_keys["a"]["id"] not in ids_b
+
+    def test_api_key_metadata_not_leaked_cross_tenant(self, tenant_auth_setup, tenant_api_keys):
+        """3.6: Tenant B cannot retrieve Tenant A's key metadata via GET /v1/api-keys/{id}."""
+        oc_token = _get_cluster_token()
+
+        # Try to GET tenant A's key from tenant B's gateway (should be rejected)
+        response = get_api_key_at(
+            tenant_auth_setup["tenant_b"]["base_url"],
+            oc_token,
+            tenant_api_keys["a"]["id"],
+        )
+        assert response.status_code == 404, (
+            f"Tenant B should not retrieve Tenant A's key metadata "
+            f"(expected 404, got {response.status_code}): {response_summary(response)}"
+        )
+
+        # Verify response body is exactly {"error": "API key not found"} with no leaked metadata
+        body = response.json()
+        assert body == {"error": "API key not found"}, (
+            f"404 response should contain only error message, got: {redact_sensitive(body)}"
+        )
+
+        # Verify tenant A can still GET its own key (sanity check)
+        response_a = get_api_key_at(
+            tenant_auth_setup["tenant_a"]["base_url"],
+            oc_token,
+            tenant_api_keys["a"]["id"],
+        )
+        assert response_a.status_code == 200, (
+            f"Tenant A should still retrieve its own key: {response_summary(response_a)}"
+        )
 
     def test_api_key_subscription_selection_uses_tenant_namespace(self, tenant_auth_setup, tenant_api_keys):
         """3.x/4.x: Internal subscription selection reports the tenant-local subscription namespace."""

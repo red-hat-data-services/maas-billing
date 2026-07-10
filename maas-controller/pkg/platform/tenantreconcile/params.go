@@ -20,6 +20,7 @@ type PlatformParams struct {
 	GatewayName           string
 	ClusterAudience       string
 	SubscriptionNamespace string
+	ExternalOIDC          *maasv1alpha1.TenantExternalOIDCConfig
 
 	// TenantIdentifier is the tenant name used for per-tenant resource naming.
 	// Empty string ("") for default/legacy tenant, non-empty (e.g., "redteam") for AITenant-managed tenants.
@@ -33,8 +34,8 @@ type PlatformParams struct {
 }
 
 // BuildPlatformParams resolves all runtime parameters from the Tenant CR,
-// cluster state, and RELATED_IMAGE_* env vars. No disk I/O.
-func BuildPlatformParams(tenant *maasv1alpha1.Tenant, appNamespace, clusterAudience string, log logr.Logger) (PlatformParams, error) {
+// platform context, cluster state, and RELATED_IMAGE_* env vars. No disk I/O.
+func BuildPlatformParams(tenant *maasv1alpha1.Tenant, platformContext PlatformContext, appNamespace, clusterAudience string, log logr.Logger) (PlatformParams, error) {
 	tenantID, err := TenantIdentifierFor(tenant)
 	if err != nil {
 		return PlatformParams{}, fmt.Errorf("resolve tenant identifier: %w", err)
@@ -42,10 +43,11 @@ func BuildPlatformParams(tenant *maasv1alpha1.Tenant, appNamespace, clusterAudie
 
 	params := PlatformParams{
 		AppNamespace:            appNamespace,
-		GatewayNamespace:        tenant.Spec.GatewayRef.Namespace,
-		GatewayName:             tenant.Spec.GatewayRef.Name,
+		GatewayNamespace:        platformContext.GatewayRef.Namespace,
+		GatewayName:             platformContext.GatewayRef.Name,
 		ClusterAudience:         clusterAudience,
 		SubscriptionNamespace:   tenant.Namespace,
+		ExternalOIDC:            platformContext.ExternalOIDC.DeepCopy(),
 		TenantIdentifier:        tenantID,
 		MaaSAPIImage:            firstNonEmpty(os.Getenv("RELATED_IMAGE_ODH_MAAS_API_IMAGE"), DefaultMaaSAPIImage),
 		PayloadProcessingImage:  firstNonEmpty(os.Getenv("RELATED_IMAGE_ODH_AI_GATEWAY_PAYLOAD_PROCESSING_IMAGE"), DefaultPayloadProcessingImage),
@@ -400,8 +402,8 @@ func patchPayloadProcessingEnvoyFilter(log logr.Logger, r *unstructured.Unstruct
 	if err != nil {
 		return fmt.Errorf("read EnvoyFilter configPatches: %w", err)
 	}
-	if !found || len(configPatches) < 4 {
-		return fmt.Errorf("EnvoyFilter configPatches: expected at least 4 entries, got %d", len(configPatches))
+	if !found || len(configPatches) < 6 {
+		return fmt.Errorf("EnvoyFilter configPatches: expected at least 6 entries, got %d", len(configPatches))
 	}
 
 	clusterByIndex := []string{beforeCluster, afterCluster}
@@ -425,9 +427,10 @@ func patchPayloadProcessingEnvoyFilter(log logr.Logger, r *unstructured.Unstruct
 		configPatches[i] = patch
 	}
 
-	// Patches 2 and 3 disable ext_proc on non-inference routes.
+	// Patches 2–5 disable ext_proc on all non-inference maas-api routes.
 	// Route name uses Istio's Gateway API convention: <namespace>.<httproute-name>.<rule-index>.
-	for i := 2; i < 4; i++ {
+	// Rule indices: 0=/v1/models, 1=/v1/subscriptions, 2=/v1/api-keys, 3=/maas-api/*
+	for i := 2; i < 6; i++ {
 		patch, ok := configPatches[i].(map[string]any)
 		if !ok {
 			return fmt.Errorf("EnvoyFilter configPatches[%d] is not an object", i)

@@ -15,6 +15,7 @@ You need a Red Hat OpenShift cluster version 4.19.9 or later. Older OpenShift ve
 
 This section walks through the installation of the required Operators:
 
+* cert-manager
 * LeaderWorkerSet
 * Kuadrant (or RHCL)
 * Platform operator (ODH or RHOAI)
@@ -24,6 +25,78 @@ This section walks through the installation of the required Operators:
 
     - **ODH**: Refer to [Kuadrant documentation](https://docs.kuadrant.io)
     - **RHOAI**: Refer to [Red Hat documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed)
+
+## Install cert-manager
+
+cert-manager is required for TLS certificate management. It must be installed before
+LeaderWorkerSet.
+
+=== "Open Data Hub"
+
+    Install cert-manager using the upstream kubectl method:
+
+    ```shell
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+    ```
+
+=== "Red Hat OpenShift AI"
+
+    Install the cert-manager Operator from OpenShift's built-in OperatorHub:
+
+    ```yaml
+    kubectl apply -f - <<EOF
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: cert-manager-operator
+    ---
+    apiVersion: operators.coreos.com/v1
+    kind: OperatorGroup
+    metadata:
+      name: cert-manager-operator
+      namespace: cert-manager-operator
+    ---
+    apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      name: openshift-cert-manager-operator
+      namespace: cert-manager-operator
+    spec:
+      channel: stable-v1
+      installPlanApproval: Automatic
+      name: openshift-cert-manager-operator
+      source: redhat-operators
+      sourceNamespace: openshift-marketplace
+    EOF
+    ```
+
+    Wait for the subscription to install successfully:
+
+    ```shell
+    kubectl wait --for=jsonpath='{.status.state}'=AtLatestKnown subscription/openshift-cert-manager-operator -n cert-manager-operator --timeout=300s
+    ```
+
+### Verification
+
+Verify that the cert-manager CRDs are available:
+
+```shell
+kubectl get crd certificates.cert-manager.io clusterissuers.cert-manager.io issuers.cert-manager.io
+```
+
+Check that the cert-manager pods are running:
+
+=== "Open Data Hub"
+
+    ```shell
+    kubectl get pods -n cert-manager
+    ```
+
+=== "Red Hat OpenShift AI"
+
+    ```shell
+    kubectl get pods -n cert-manager-operator
+    ```
 
 ## Install LeaderWorkerSet API
 
@@ -293,6 +366,63 @@ Now install the Gateway API controller for your platform:
           ]}}
         ]'
         ```
+
+    #### High-concurrency authentication timeout
+
+    RHCL configures the Kuadrant WASM plugin with an authentication service timeout of `200ms` by default. Under high concurrent request load, this short timeout can appear as intermittent HTTP `500` or `503` responses from gateway policy evaluation even when the model backend is healthy. If you see timeout-related failures during concurrent inference, increase `AUTH_SERVICE_TIMEOUT` to `2s` (`2000ms`) on the RHCL operator Subscription (`spec.config.env`).
+
+    Set the RHCL Subscription name and namespace for your installation before patching. The manual install example above uses `kuadrant-operator` in `kuadrant-system`; RHOAI-managed clusters commonly use `rhcl-operator` in `rh-connectivity-link`.
+
+    ```shell
+    RHCL_NAMESPACE=kuadrant-system
+    RHCL_SUBSCRIPTION=kuadrant-operator
+
+    # For RHOAI-managed RHCL, use:
+    # RHCL_NAMESPACE=rh-connectivity-link
+    # RHCL_SUBSCRIPTION=rhcl-operator
+    ```
+
+    To configure the timeout before installation, add the environment variable to the Subscription. If you already set other `spec.config.env` entries, add it alongside them:
+
+    ```yaml
+    spec:
+      config:
+        env:
+          - name: AUTH_SERVICE_TIMEOUT
+            value: "2s"
+    ```
+
+    To configure the timeout after installation, choose the patch that matches the current Subscription shape:
+
+    If `spec.config.env` already exists, append the timeout value:
+
+    ```shell
+    kubectl patch subscription "${RHCL_SUBSCRIPTION}" -n "${RHCL_NAMESPACE}" --type='json' -p='[
+      {"op":"add","path":"/spec/config/env/-","value":{"name":"AUTH_SERVICE_TIMEOUT","value":"2s"}}
+    ]'
+    ```
+
+    If `spec.config` exists but `spec.config.env` does not, add the `env` array:
+
+    ```shell
+    kubectl patch subscription "${RHCL_SUBSCRIPTION}" -n "${RHCL_NAMESPACE}" --type='json' -p='[
+      {"op":"add","path":"/spec/config/env","value":[
+        {"name":"AUTH_SERVICE_TIMEOUT","value":"2s"}
+      ]}
+    ]'
+    ```
+
+    If the Subscription does not have a `spec.config` section yet, create it with the timeout value:
+
+    ```shell
+    kubectl patch subscription "${RHCL_SUBSCRIPTION}" -n "${RHCL_NAMESPACE}" --type='json' -p='[
+      {"op":"add","path":"/spec/config","value":{"env":[
+        {"name":"AUTH_SERVICE_TIMEOUT","value":"2s"}
+      ]}}
+    ]'
+    ```
+
+    After changing the operator Subscription, wait for RHCL-managed components to roll out and retest the concurrent workload. Keep the value as low as your workload allows: increasing it gives authentication calls more time under load, but failed auth service calls can also take longer before the gateway returns an error.
 
     Wait for the subscription to install successfully:
 
