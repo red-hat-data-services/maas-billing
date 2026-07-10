@@ -106,6 +106,95 @@ func executeSearchRequest(t *testing.T, handler *Handler, requestBody string, us
 	return response
 }
 
+type metricsCall struct {
+	tenant, result string
+}
+
+type spyMetricsRecorder struct {
+	keyValidations []metricsCall
+	tokenMints     []metricsCall
+}
+
+func (s *spyMetricsRecorder) RecordKeyValidation(tenant, result string) {
+	s.keyValidations = append(s.keyValidations, metricsCall{tenant, result})
+}
+
+func (s *spyMetricsRecorder) RecordTokenMint(tenant, result string) {
+	s.tokenMints = append(s.tokenMints, metricsCall{tenant, result})
+}
+
+// TestCreateAPIKey_TokenMintMetrics verifies that the token mint counter records
+// the correct result label for successful and rejected key creation.
+func TestCreateAPIKey_TokenMintMetrics(t *testing.T) {
+	tests := []struct {
+		name           string
+		body           string
+		expectedStatus int
+		expectedResult string
+	}{
+		{"success", `{"name": "metric-test-key"}`, http.StatusCreated, "success"},
+		{"rejected", `{"name": "bad-key", "expiresIn": "-1h"}`, http.StatusBadRequest, "rejected"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			spy := &spyMetricsRecorder{}
+			store := NewMockStore()
+			svc := NewServiceWithLogger(store, &config.Config{}, fixedSubSelector{}, logger.Development())
+			h := NewHandler(logger.Development(), svc, newMockAdminChecker(), spy)
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/v1/api-keys", nil)
+			c.Request.Header.Set("Content-Type", "application/json")
+			c.Request.Body = io.NopCloser(strings.NewReader(tt.body))
+			c.Set("user", &token.UserContext{
+				Username: "alice",
+				Groups:   []string{"system:authenticated"},
+				Tenant:   "redteam",
+			})
+
+			h.CreateAPIKey(c)
+
+			assert.Equal(t, tt.expectedStatus, w.Code)
+			require.Len(t, spy.tokenMints, 1)
+			assert.Equal(t, "redteam", spy.tokenMints[0].tenant)
+			assert.Equal(t, tt.expectedResult, spy.tokenMints[0].result)
+		})
+	}
+}
+
+func TestValidateAPIKey_RecordsValidationMetric(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := NewMockStore()
+	cfg := &config.Config{}
+	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
+	spy := &spyMetricsRecorder{}
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), spy)
+
+	// Create a key via service so hash and subscription are correct
+	resp, err := service.CreateAPIKey(
+		context.Background(), "alice", []string{"system:authenticated"},
+		"Val Key", "", nil, false, "", "redteam",
+	)
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/internal/v1/api-keys/validate", nil)
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Request.Body = io.NopCloser(strings.NewReader(
+		fmt.Sprintf(`{"key": "%s"}`, resp.Key)))
+
+	handler.ValidateAPIKeyHandler(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	require.Len(t, spy.keyValidations, 1)
+	assert.Equal(t, "redteam", spy.keyValidations[0].tenant)
+	assert.Equal(t, "valid", spy.keyValidations[0].result)
+}
+
 func TestIsAuthorizedForKey(t *testing.T) {
 	h := &Handler{
 		adminChecker: newMockAdminChecker(),
@@ -157,7 +246,7 @@ func TestSearchAPIKeys_EmptyRequest(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	testUser := &token.UserContext{
 		Username: "test-user",
@@ -204,7 +293,7 @@ func TestSearchAPIKeys_Pagination(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	testUser := &token.UserContext{
 		Username: "test-user",
@@ -309,7 +398,7 @@ func TestSearchAPIKeys_StatusFilter(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 	testUser := &token.UserContext{
@@ -436,7 +525,7 @@ func TestSearchAPIKeys_SubscriptionFilter(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 	testUser := &token.UserContext{
@@ -495,7 +584,7 @@ func TestSearchAPIKeys_Sorting(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 	testUser := &token.UserContext{
@@ -621,7 +710,7 @@ func TestSearchAPIKeys_AdminVsRegularUser(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 
@@ -745,7 +834,7 @@ func TestSearchAPIKeys_AdminFiltersByUsernameAndStatus(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 
@@ -829,7 +918,7 @@ func TestBulkRevokeAPIKeys(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 
@@ -988,7 +1077,7 @@ func TestUserCanCreateOwnKey(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	regularUser := &token.UserContext{
 		Username: "alice",
@@ -1027,7 +1116,7 @@ func TestCreateAPIKey_WithExplicitSubscription(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	user := &token.UserContext{Username: "alice", Groups: []string{"system:authenticated"}, Tenant: "test-tenant"}
 	body := `{"name": "k1", "subscription": "custom-sub"}`
@@ -1081,6 +1170,25 @@ func TestCreateAPIKey_SubscriptionSelectErrors(t *testing.T) {
 			},
 			body: `{"name": "k1"}`,
 		},
+		{
+			name: "multiple accessible subscriptions when omitting field",
+			sel: errSubSelector{
+				highestPriorityErr: &subscription.MultipleSubscriptionsError{
+					Subscriptions: []string{"sub-a", "sub-b"},
+				},
+			},
+			body: `{"name": "k1"}`,
+		},
+		{
+			name: "requested model not in explicit subscription",
+			sel: errSubSelector{
+				selectErr: &subscription.ModelNotInSubscriptionError{
+					Subscription: "custom-sub",
+					Model:        "llm/missing-model",
+				},
+			},
+			body: `{"name": "k1", "subscription": "custom-sub"}`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1088,7 +1196,7 @@ func TestCreateAPIKey_SubscriptionSelectErrors(t *testing.T) {
 			store := NewMockStore()
 			cfg := &config.Config{}
 			service := NewServiceWithLogger(store, cfg, tt.sel, logger.Development())
-			h := NewHandler(logger.Development(), service, newMockAdminChecker())
+			h := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
@@ -1123,7 +1231,7 @@ func TestGetAPIKeyHandler(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	// Create test keys for alice and bob
 	aliceKey := &ApiKey{
@@ -1240,7 +1348,7 @@ func testRevokeKeySuccess(t *testing.T, user *token.UserContext) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	// Create alice's key
 	err := store.AddKey(context.Background(), "alice", "alice-key-1", "hash1", "Alice's Key", "", []string{"tier-free"}, testSubscriptionName, "test-tenant", nil, false)
@@ -1284,7 +1392,7 @@ func TestRevokeAPIKeyHandler(t *testing.T) {
 		store := NewMockStore()
 		cfg := &config.Config{}
 		service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-		handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+		handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 		// Create alice's key
 		err := store.AddKey(context.Background(), "alice", "alice-key-1", "hash1", "Alice's Key", "", []string{"tier-free"}, testSubscriptionName, "test-tenant", nil, false)
@@ -1331,7 +1439,7 @@ func TestRevokeAPIKeyHandler(t *testing.T) {
 		store := NewMockStore()
 		cfg := &config.Config{}
 		service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-		handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+		handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 		aliceUser := &token.UserContext{
 			Username: "alice",
@@ -1354,7 +1462,7 @@ func TestRevokeAPIKeyHandler(t *testing.T) {
 		store := NewMockStore()
 		cfg := &config.Config{}
 		service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-		handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+		handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 		// Create and immediately revoke alice's key
 		err := store.AddKey(context.Background(), "alice", "alice-key-1", "hash1", "Alice's Key", "", []string{"tier-free"}, testSubscriptionName, "test-tenant", nil, false)
@@ -1390,7 +1498,7 @@ func TestCreateEphemeralAPIKey(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	testUser := &token.UserContext{
 		Username: "playground-user",
@@ -1525,7 +1633,7 @@ func TestCleanupExpiredEphemeralKeys(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 
@@ -1604,7 +1712,7 @@ func TestSearchExcludesEphemeralByDefault(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 	testUser := &token.UserContext{
@@ -1661,7 +1769,7 @@ func TestSearchAPIKeys_ExpiredStatusComputation(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 	testUser := &token.UserContext{
@@ -1726,7 +1834,7 @@ func TestGetAPIKey_ExpiredStatusComputation(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 	testUser := &token.UserContext{
@@ -1840,7 +1948,7 @@ func TestCrossTenantAccessRejected(t *testing.T) {
 			store := NewMockStore()
 			cfg := &config.Config{}
 			svc := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-			h := NewHandler(logger.Development(), svc, newMockAdminChecker())
+			h := NewHandler(logger.Development(), svc, newMockAdminChecker(), nil)
 
 			ctx := context.Background()
 			err := store.AddKey(ctx, "alice", "ta-key-1", "hash-ta1", "TA Key", "",
@@ -1874,7 +1982,7 @@ func TestSearchAPIKeys_TenantIsolation(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 
@@ -1917,7 +2025,7 @@ func TestCreateAPIKey_StoresTenant(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	user := &token.UserContext{
 		Username: "alice",
@@ -1954,7 +2062,7 @@ func TestBulkRevokeAPIKeys_TenantIsolation(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 
@@ -2022,7 +2130,7 @@ func TestSearchAPIKeys_AdminCrossTenantIsolation(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 
@@ -2067,7 +2175,7 @@ func TestSearchAPIKeys_EmptyTenantNoResults(t *testing.T) {
 	store := NewMockStore()
 	cfg := &config.Config{}
 	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
-	handler := NewHandler(logger.Development(), service, newMockAdminChecker())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
 
 	ctx := context.Background()
 
@@ -2102,4 +2210,94 @@ func TestSearchAPIKeys_EmptyTenantNoResults(t *testing.T) {
 	assert.Equal(t, "list", response.Object)
 	assert.Empty(t, response.Data, "tenant-c user should see no keys")
 	assert.False(t, response.HasMore)
+}
+
+func TestCreateAPIKey_NameValidation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := NewMockStore()
+	cfg := &config.Config{}
+	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), nil)
+
+	user := &token.UserContext{
+		Username: "user",
+		Groups:   []string{"test-group"},
+		Tenant:   "tenant",
+	}
+
+	validNames := []struct {
+		name        string
+		description string
+	}{
+		{"simple-key", "ASCII alphanumeric with dash"},
+		{"test_key_123", "ASCII with underscores and numbers"},
+		{"My API Key", "ASCII with spaces"},
+		{"café", "Latin-1 accented characters"},
+		{"🔑 api-key", "Emoji with ASCII"},
+		{"ключ", "Cyrillic characters"},
+		{"مفتاح", "Arabic characters"},
+		{"κλειδί", "Greek characters"},
+		{"a", "Single character"},
+		{strings.Repeat("a", 128), "Exactly 128 characters"},
+		{"key.with.dots", "Dots"},
+		{"key:with:colons", "Colons"},
+		{"key-with_mixed.chars:123", "Mixed valid punctuation"},
+	}
+
+	for _, tc := range validNames {
+		t.Run("valid_"+tc.description, func(t *testing.T) {
+			requestBody := fmt.Sprintf(`{"name": %q}`, tc.name)
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/v1/api-keys", nil)
+			c.Request.Header.Set("Content-Type", "application/json")
+			c.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+			c.Set("user", user)
+
+			handler.CreateAPIKey(c)
+
+			assert.Equal(t, http.StatusCreated, w.Code, "key name %q should be valid: %s", tc.name, tc.description)
+			var response CreateAPIKeyResponse
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			require.NoError(t, err)
+			// Verify the name is stored (trimmed if had whitespace)
+			assert.Equal(t, strings.TrimSpace(tc.name), response.Name)
+		})
+	}
+
+	invalidNames := []struct {
+		name   string
+		reason string
+		errMsg string
+	}{
+		{"   ", "whitespace only", "whitespace only"},
+		{"\t\t", "tabs only", "whitespace only"},
+		{"\n\n", "newlines only", "whitespace only"},
+		{"key\nwith\nnewline", "newline character", "control characters"},
+		{"key\twith\ttab", "tab character", "control characters"},
+		{"key\rwith\rcarriage", "carriage return", "control characters"},
+		{strings.Repeat("a", 129), "129 characters (over limit)", "exceed 128"},
+		{strings.Repeat("x", 200), "200 characters (way over limit)", "exceed 128"},
+		{"line1\nline2\nline3", "multiple newlines", "control characters"},
+	}
+
+	for _, tc := range invalidNames {
+		t.Run("invalid_"+tc.reason, func(t *testing.T) {
+			requestBody := fmt.Sprintf(`{"name": %q}`, tc.name)
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/v1/api-keys", nil)
+			c.Request.Header.Set("Content-Type", "application/json")
+			c.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+			c.Set("user", user)
+
+			handler.CreateAPIKey(c)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code, "key name should be rejected: %s", tc.reason)
+			var response map[string]any
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			require.NoError(t, err)
+			assert.Contains(t, response["error"], tc.errMsg, "error message should mention %s for %s", tc.errMsg, tc.reason)
+		})
+	}
 }

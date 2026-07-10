@@ -59,6 +59,7 @@ from test_helper import (
     _snapshot_cr,
     _wait_for_maas_auth_policy_phase,
     _wait_for_maas_subscription_phase,
+    _wait_for_model_ready,
     _wait_for_token_rate_limit_policy,
     _wait_reconcile,
 )
@@ -292,60 +293,20 @@ class TestModelsEndpoint:
             # Wait for subscription to reconcile before creating API key
             _wait_for_maas_subscription_phase(subscription_name, namespace=maas_ns)
 
+            # Wait for model to become Ready after governance pairing is created
+            log.info("Waiting for model to reconcile and become Ready...")
+            _wait_for_model_ready(DISTINCT_MODEL_REF, namespace=MODEL_NAMESPACE)
+
             # Create API key for inference
             api_key = _create_api_key(sa_token, name=f"{sa_name}-key")
 
-            # Wait for Authorino to sync auth policies (can take 30+ seconds)
-            log.info("Waiting 30s for Authorino to sync auth policies...")
-            time.sleep(30)
+            _wait_reconcile()
 
-            # DEBUG: Test model endpoint directly first
-            log.info("DEBUG: Testing direct model endpoint access...")
-            model_endpoint = f"https://{os.environ['GATEWAY_HOST']}/llm/{DISTINCT_MODEL_REF}/v1/models"
-            debug_r = requests.get(
-                model_endpoint,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "x-maas-subscription": subscription_name,
-                },
-                timeout=TIMEOUT,
-                verify=TLS_VERIFY,
-            )
-            log.info(f"DEBUG: Direct model endpoint returned {debug_r.status_code}")
-            if debug_r.status_code == 200:
-                log.info(f"DEBUG: Direct model endpoint data: {debug_r.json()}")
-            else:
-                log.info(f"DEBUG: Direct model endpoint error: {debug_r.text}")
-
-            # Poll /v1/models until it returns models or timeout
+            # Query /v1/models
             log.info("Testing: GET /v1/models with single subscription (no header, auto-select)")
-            url = f"{_maas_api_url()}/v1/models"
-
-            timeout_seconds = 60
-            poll_interval = 2
-            deadline = time.time() + timeout_seconds
-            r = None
-
-            while time.time() < deadline:
-                r = requests.get(
-                    url,
-                    headers={"Authorization": f"Bearer {api_key}"},
-                    timeout=TIMEOUT,
-                    verify=TLS_VERIFY,
-                )
-
-                if r.status_code == 200:
-                    models = (r.json().get("data") or [])
-                    if len(models) > 0:
-                        log.info(f"✅ Models available after {60 - int(deadline - time.time())}s")
-                        break
-                    log.info(f"Got 200 but no models yet, retrying... ({int(deadline - time.time())}s remaining)")
-                else:
-                    log.info(f"Got {r.status_code}, retrying... ({int(deadline - time.time())}s remaining)")
-
-                time.sleep(poll_interval)
-
-            assert r is not None and r.status_code == 200, f"Expected 200 for single subscription auto-select, got {r.status_code if r else 'timeout'}: {r.text if r else 'no response'}"
+            r = _get_models_with_gateway_retry(
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
 
             # Validate response structure
             data = r.json()
@@ -849,7 +810,10 @@ class TestModelsEndpoint:
                 check=True,
             )
 
-            # Wait for subscription to reconcile before creating API key
+            # Wait for the auth policy and subscription to reconcile before creating API key.
+            # The central /v1/models handler probes each model endpoint; a partially propagated
+            # auth policy can otherwise produce HTTP 200 with only one accessible backend.
+            _wait_for_maas_auth_policy_phase(auth_policy_name, namespace=maas_ns)
             _wait_for_maas_subscription_phase(subscription_name, namespace=maas_ns)
 
             # Create API key bound to our test subscription
@@ -859,21 +823,35 @@ class TestModelsEndpoint:
 
             # Query /v1/models
             log.info(f"Querying /v1/models with subscription: {subscription_name}")
-            r = _get_models_with_gateway_retry(
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "x-maas-subscription": subscription_name,
-                },
-            )
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "x-maas-subscription": subscription_name,
+            }
+            models = []
+            model_ids = []
+            for attempt in range(1, GATEWAY_PROPAGATION_RETRIES + 1):
+                r = _get_models_with_gateway_retry(headers=headers)
 
-            assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
-            data = r.json()
-            models = data.get("data") or []
+                assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+                data = r.json()
+                models = data.get("data") or []
 
-            assert isinstance(models, list), "Models should be a list"
+                assert isinstance(models, list), "Models should be a list"
+
+                model_ids = [m["id"] for m in models]
+                urls = [m.get("url") for m in models if m.get("id") == MODEL_NAME and m.get("url")]
+                if len(models) == 2 and len(set(urls)) == 2:
+                    break
+
+                if attempt < GATEWAY_PROPAGATION_RETRIES:
+                    log.info(
+                        "Models response not fully propagated yet "
+                        f"(attempt {attempt}/{GATEWAY_PROPAGATION_RETRIES}); "
+                        f"got {len(models)} entries: {model_ids}"
+                    )
+                    time.sleep(GATEWAY_PROPAGATION_DELAY)
 
             # Get model IDs from response
-            model_ids = [m["id"] for m in models]
             unique_ids = set(model_ids)
 
             log.info(f"📊 API Response: {len(models)} total model(s), {len(unique_ids)} unique ID(s)")
@@ -893,7 +871,7 @@ class TestModelsEndpoint:
             # INTENDED BEHAVIOR: Should return 2 entries (deduplication by model ID + URL)
             # Different backend services (different URLs) return separate entries even with same model ID
             assert len(models) == 2, \
-                f"Expected 2 entries (different URLs), got {len(models)}: {model_ids}"
+                f"Expected 2 entries (different URLs), got {len(models)}: {json.dumps(models, indent=2)}"
 
             # Validate both entries have different URLs
             urls = [m["url"] for m in models if "url" in m]
@@ -1011,6 +989,11 @@ class TestModelsEndpoint:
             # Wait for subscription to reconcile before creating API key
             _wait_for_maas_subscription_phase(subscription_name, namespace=maas_ns)
 
+            # Wait for models to become Ready after governance pairing is created
+            log.info("Waiting for models to reconcile and become Ready...")
+            _wait_for_model_ready(DISTINCT_MODEL_REF, namespace=MODEL_NAMESPACE)
+            _wait_for_model_ready(DISTINCT_MODEL_2_REF, namespace=MODEL_NAMESPACE)
+
             # Create API key bound to our test subscription
             api_key = _create_api_key(sa_token, name="e2e-distinct-models-test-key", subscription=subscription_name)
 
@@ -1112,6 +1095,11 @@ class TestModelsEndpoint:
             _wait_for_maas_auth_policy_phase(auth2_name)
             _wait_for_maas_subscription_phase(sub1_name)
             _wait_for_maas_subscription_phase(sub2_name)
+
+            # Wait for models to become Ready after governance pairing is created
+            log.info("Waiting for models to reconcile and become Ready...")
+            _wait_for_model_ready(DISTINCT_MODEL_REF, namespace=MODEL_NAMESPACE)
+            _wait_for_model_ready(DISTINCT_MODEL_2_REF, namespace=MODEL_NAMESPACE)
 
             # Query with user token (no X-MaaS-Subscription header)
             log.info("Querying /v1/models with user token (no header)")

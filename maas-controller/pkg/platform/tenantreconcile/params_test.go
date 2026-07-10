@@ -30,7 +30,11 @@ func TestBuildPlatformParams(t *testing.T) {
 			},
 		}
 
-		got, err := BuildPlatformParams(tenant, "opendatahub", "https://kubernetes.default.svc", logr.Discard())
+		platformContext := PlatformContext{GatewayRef: maasv1alpha1.TenantGatewayRef{
+			Namespace: "openshift-ingress",
+			Name:      "maas-default-gateway",
+		}}
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		assert.NoError(t, err)
 
 		assert.Equal(t, "opendatahub", got.AppNamespace)
@@ -61,7 +65,11 @@ func TestBuildPlatformParams(t *testing.T) {
 			},
 		}
 
-		got, err := BuildPlatformParams(tenant, "tenant-ns", "cluster-audience", logr.Discard())
+		platformContext := PlatformContext{GatewayRef: maasv1alpha1.TenantGatewayRef{
+			Namespace: "gateway-ns",
+			Name:      "gateway-name",
+		}}
+		got, err := BuildPlatformParams(tenant, platformContext, "tenant-ns", "cluster-audience", logr.Discard())
 		assert.NoError(t, err)
 
 		assert.Equal(t, "tenant-ns", got.AppNamespace)
@@ -166,11 +174,11 @@ func TestApplyPlatformParamsWithRenderedOverlay(t *testing.T) {
 	assert.Equal(t, params.GatewayName, firstTargetRef["name"])
 
 	// Verify dual-stage filter chain: configPatches[0]=INSERT_BEFORE, configPatches[1]=INSERT_AFTER,
-	// plus per-route disable patches: configPatches[2] and [3]=MERGE on maas-api-route rules.
+	// plus per-route disable patches: configPatches[2..5]=MERGE on maas-api-route rules 0–3.
 	configPatches, found, err := unstructured.NestedSlice(payloadEnvoyFilter.Object, "spec", "configPatches")
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Len(t, configPatches, 4, "expected four configPatches (INSERT_BEFORE + INSERT_AFTER + 2x MERGE)")
+	require.Len(t, configPatches, 6, "expected six configPatches (INSERT_BEFORE + INSERT_AFTER + 4x MERGE)")
 
 	wantAnchor := wasmpluginAnchorName(params.GatewayNamespace, params.GatewayName)
 	wantBeforeCluster := grpcClusterName(PayloadPreProcessingName, params.GatewayNamespace, 9004)
@@ -192,8 +200,8 @@ func TestApplyPlatformParamsWithRenderedOverlay(t *testing.T) {
 		assert.Equal(t, wantClusters[i], cluster, "configPatches[%d] grpc cluster_name", i)
 	}
 
-	// Verify per-route ext_proc disable on maas-api-route rules 0 and 1.
-	for i := 2; i < 4; i++ {
+	// Verify per-route ext_proc disable on maas-api-route rules 0–3.
+	for i := 2; i < 6; i++ {
 		cp, ok := configPatches[i].(map[string]any)
 		require.True(t, ok, "configPatches[%d] should be a map", i)
 
@@ -208,6 +216,11 @@ func TestApplyPlatformParamsWithRenderedOverlay(t *testing.T) {
 		require.NoError(t, err, "configPatches[%d] ipp-pre disabled field", i)
 		require.True(t, found, "configPatches[%d] ipp-pre disabled field should exist", i)
 		assert.True(t, disabled, "configPatches[%d] ipp-pre should be disabled", i)
+
+		ippDisabled, found, err := unstructured.NestedBool(cp, "patch", "value", "typed_per_filter_config", "envoy.filters.http.ext_proc.ipp", "disabled")
+		require.NoError(t, err, "configPatches[%d] ipp disabled field", i)
+		require.True(t, found, "configPatches[%d] ipp disabled field should exist", i)
+		assert.True(t, ippDisabled, "configPatches[%d] ipp should be disabled", i)
 	}
 
 	// Verify payload-pre-processing Deployment and Service are present and namespaced correctly.
