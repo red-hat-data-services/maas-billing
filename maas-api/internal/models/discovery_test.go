@@ -13,8 +13,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openai/openai-go/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"knative.dev/pkg/apis"
 
 	"github.com/opendatahub-io/models-as-a-service/maas-api/internal/logger"
 	"github.com/opendatahub-io/models-as-a-service/maas-api/internal/models"
@@ -146,6 +148,100 @@ func TestBuildClusterTLSConfigFromPath(t *testing.T) {
 
 		assert.Nil(t, tlsConfig.NextProtos)
 	})
+}
+
+func TestFilterModelsByAccess_ReadinessBased(t *testing.T) {
+	log := logger.New(true)
+
+	mgr, err := models.NewManager(log, 5, "", false)
+	require.NoError(t, err)
+
+	// FilterModelsByAccess is purely readiness-based: no backend probing, no URL validation.
+	// The URL field is informational (returned to clients); it does not affect inclusion.
+	tests := []struct {
+		name     string
+		model    models.Model
+		included bool
+	}{
+		{
+			name: "ready llmisvc with http URL is included",
+			model: models.Model{
+				Model: openai.Model{ID: "http-model", Object: "model"},
+				URL:   &apis.URL{Scheme: "http", Host: "gateway.example.com"},
+				Ready: true,
+			},
+			included: true,
+		},
+		{
+			name: "not-ready llmisvc is excluded regardless of URL",
+			model: models.Model{
+				Model: openai.Model{ID: "not-ready-model", Object: "model"},
+				URL:   &apis.URL{Scheme: "https", Host: "gateway.example.com"},
+				Ready: false,
+			},
+			included: false,
+		},
+		{
+			name: "ready llmisvc with nil URL is included",
+			model: models.Model{
+				Model: openai.Model{ID: "nil-url-model", Object: "model"},
+				URL:   nil,
+				Ready: true,
+			},
+			included: true,
+		},
+		{
+			name: "ready ExternalModel is included",
+			model: models.Model{
+				Model: openai.Model{ID: "ext-model", Object: "model"},
+				Kind:  "ExternalModel",
+				URL:   &apis.URL{Scheme: "https", Host: "provider.example.com"},
+				Ready: true,
+			},
+			included: true,
+		},
+		{
+			name: "not-ready ExternalModel is excluded",
+			model: models.Model{
+				Model: openai.Model{ID: "ext-not-ready", Object: "model"},
+				Kind:  "ExternalModel",
+				URL:   &apis.URL{Scheme: "https", Host: "provider.example.com"},
+				Ready: false,
+			},
+			included: false,
+		},
+		{
+			name: "ready LLMInferenceService kind (alternate spelling) is included",
+			model: models.Model{
+				Model: openai.Model{ID: "llmisvc-alt", Object: "model"},
+				Kind:  "LLMInferenceService",
+				URL:   &apis.URL{Scheme: "https", Host: "gateway.example.com"},
+				Ready: true,
+			},
+			included: true,
+		},
+		{
+			name: "unknown kind is excluded",
+			model: models.Model{
+				Model: openai.Model{ID: "unknown-kind-model", Object: "model"},
+				Kind:  "UnknownKind",
+				URL:   &apis.URL{Scheme: "https", Host: "gateway.example.com"},
+				Ready: true,
+			},
+			included: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := mgr.FilterModelsByAccess(t.Context(), []models.Model{tt.model}, "Bearer test-token", "")
+			if tt.included {
+				assert.Len(t, result, 1, "ready model should be included")
+			} else {
+				assert.Empty(t, result, "not-ready or unknown-kind model should be excluded")
+			}
+		})
+	}
 }
 
 // selfSignedCertPEM generates a minimal self-signed CA certificate in PEM format for use in tests.
