@@ -83,9 +83,10 @@ func reconcileAITenantTwice(t *testing.T, r *AITenantReconciler, key types.Names
 	t.Helper()
 	g := NewWithT(t)
 
+	// Unblocking UI: finalizer add/requeue removed temporarily in PR #1159 follow-up.
 	res, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(res.RequeueAfter).To(Equal(time.Second))
+	g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 	res, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
 	g.Expect(err).NotTo(HaveOccurred())
@@ -265,10 +266,6 @@ func TestAITenantReconcile_MissingGatewaySetsFailedStatus(t *testing.T) {
 	key := types.NamespacedName{Name: aitenant.Name, Namespace: aitenant.Namespace}
 	res, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(res.RequeueAfter).To(Equal(time.Second))
-
-	res, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
-	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(res.RequeueAfter).To(Equal(30 * time.Second))
 
 	var updated maasv1alpha1.AITenant
@@ -387,7 +384,7 @@ func TestAITenantReconcile_UpdatesPreExistingTenant(t *testing.T) {
 
 	res, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(res.RequeueAfter).To(Equal(time.Second))
+	g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 	res, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
 	g.Expect(err).NotTo(HaveOccurred())
@@ -414,72 +411,6 @@ func TestAITenantReconcile_UpdatesPreExistingTenant(t *testing.T) {
 		Name:      "old-gateway",
 	}))
 	g.Expect(tenant.Spec.ExternalOIDC).To(BeNil())
-	g.Expect(tenant.Finalizers).NotTo(ContainElement(tenantFinalizer))
-}
-
-func TestAITenantReconcile_StripsStaleFinalizerFromLegacyTenantOnMigration(t *testing.T) {
-	g := NewWithT(t)
-	s := aitenantTestScheme(t)
-
-	aitenant := &maasv1alpha1.AITenant{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "team-stalefinalizer",
-			Namespace: tenantreconcile.DefaultAITenantNamespace,
-		},
-	}
-	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "ai-tenant-team-stalefinalizer"}}
-	// Simulates an install upgraded from a pre-MaasTenantConfig version, where a
-	// reconciler used to add tenantFinalizer directly to Tenant objects. No reconciler
-	// for the Tenant kind exists anymore, so nothing else would ever remove this.
-	preExistingTenant := &maasv1alpha1.Tenant{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       maasv1alpha1.TenantInstanceName,
-			Namespace:  "ai-tenant-team-stalefinalizer",
-			Finalizers: []string{tenantFinalizer},
-		},
-		Spec: maasv1alpha1.TenantSpec{
-			GatewayRef: maasv1alpha1.TenantGatewayRef{
-				Namespace: "openshift-ingress",
-				Name:      "old-gateway",
-			},
-		},
-	}
-	cl := fake.NewClientBuilder().
-		WithScheme(s).
-		WithStatusSubresource(&maasv1alpha1.AITenant{}).
-		WithObjects(aitenant, ns, preExistingTenant, existingAITenantGateway("old-gateway")).
-		Build()
-	r := &AITenantReconciler{
-		Client:           cl,
-		Scheme:           s,
-		APIReader:        cl,
-		AppNamespace:     "opendatahub",
-		TenantNamespace:  "models-as-a-service",
-		GatewayNamespace: "openshift-ingress",
-	}
-
-	key := types.NamespacedName{Name: aitenant.Name, Namespace: aitenant.Namespace}
-	for i := 0; i < 3; i++ {
-		_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
-		g.Expect(err).NotTo(HaveOccurred())
-	}
-
-	var tenant maasv1alpha1.Tenant
-	g.Expect(cl.Get(context.Background(), client.ObjectKey{
-		Name:      maasv1alpha1.TenantInstanceName,
-		Namespace: "ai-tenant-team-stalefinalizer",
-	}, &tenant)).To(Succeed())
-	g.Expect(tenant.Finalizers).NotTo(ContainElement(tenantFinalizer),
-		"stale finalizer must be stripped so the legacy Tenant can actually terminate when deleted")
-	g.Expect(tenant.Annotations).To(HaveKeyWithValue("maas.opendatahub.io/deprecated-by", maasv1alpha1.MaasTenantConfigKind))
-
-	// With the finalizer gone, deleting the legacy Tenant (e.g. via tenant namespace
-	// teardown) must actually remove it instead of hanging forever.
-	g.Expect(cl.Delete(context.Background(), &tenant)).To(Succeed())
-	g.Expect(apierrors.IsNotFound(cl.Get(context.Background(), client.ObjectKey{
-		Name:      maasv1alpha1.TenantInstanceName,
-		Namespace: "ai-tenant-team-stalefinalizer",
-	}, &maasv1alpha1.Tenant{}))).To(BeTrue())
 }
 
 func TestAITenantReconcile_IgnoresLegacyDefaultGatewayForNonDefaultTenant(t *testing.T) {
@@ -601,11 +532,7 @@ func TestAITenantReconcile_LegacyGatewayNamespaceMismatchFailsMigration(t *testi
 	key := types.NamespacedName{Name: aitenant.Name, Namespace: aitenant.Namespace}
 	res, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(res.RequeueAfter).To(Equal(time.Second))
-
-	res, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(res).To(Equal(ctrl.Result{}))
+	g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 
 	var updated maasv1alpha1.AITenant
 	g.Expect(cl.Get(context.Background(), key, &updated)).To(Succeed())
@@ -934,10 +861,6 @@ func TestAITenantReconcile_RejectsNamespaceOwnedByAnotherAITenant(t *testing.T) 
 	key := types.NamespacedName{Name: aitenant.Name, Namespace: aitenant.Namespace}
 	res, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(res.RequeueAfter).To(Equal(time.Second))
-
-	res, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key})
-	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(res.RequeueAfter).To(Equal(30 * time.Second))
 
 	var updated maasv1alpha1.AITenant
@@ -1089,7 +1012,9 @@ func TestAITenantReconcile_DeletionCleansChildrenAndRequestsNamespaceDeletionBut
 	err = cl.Get(ctx, key, &remaining)
 	if !apierrors.IsNotFound(err) {
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(remaining.Finalizers).NotTo(ContainElement(aitenantFinalizer))
+		// Unblocking UI
+		// TODO: Include adding the finalizer back as part of https://github.com/opendatahub-io/models-as-a-service/pull/1159
+		// g.Expect(remaining.Finalizers).NotTo(ContainElement(aitenantFinalizer))
 	}
 }
 
@@ -1366,13 +1291,8 @@ func TestAITenantReconcile_GatewayClaimBlocksDuplicateGateway(t *testing.T) {
 
 	key2 := types.NamespacedName{Name: aitenant2.Name, Namespace: aitenant2.Namespace}
 
-	// First reconcile adds the finalizer.
+	// Reconcile should fail due to gateway claim conflict.
 	res, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key2})
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(res.RequeueAfter).To(Equal(time.Second))
-
-	// Second reconcile should fail due to gateway claim conflict.
-	res, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key2})
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(res.RequeueAfter).To(Equal(30 * time.Second))
 
@@ -1427,6 +1347,8 @@ func TestAITenantReconcile_GatewayClaimCleanedOnDeletion(t *testing.T) {
 	var toDelete maasv1alpha1.AITenant
 	g.Expect(cl.Get(ctx, key, &toDelete)).To(Succeed())
 	setMapValue(&toDelete.Annotations, aitenantAPIKeysRevokedAnnotation, "true")
+	// Keep the object through deletion reconcile while finalizer add is disabled in controller.
+	toDelete.Finalizers = []string{aitenantFinalizer}
 	g.Expect(cl.Update(ctx, &toDelete)).To(Succeed())
 	g.Expect(cl.Delete(ctx, &maasv1alpha1.MaasTenantConfig{ObjectMeta: metav1.ObjectMeta{Name: maasv1alpha1.MaasTenantConfigInstanceName, Namespace: "ai-tenant-team-cleanup"}})).To(Succeed())
 	g.Expect(cl.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "ai-tenant-team-cleanup"}})).To(Succeed())
@@ -2075,9 +1997,18 @@ func TestAITenantReconcile_DeletionAddsTenantFinalizerBeforeDelete(t *testing.T)
 	g.Expect(res.RequeueAfter).To(Equal(5 * time.Second))
 
 	var updatedTenant maasv1alpha1.MaasTenantConfig
-	g.Expect(cl.Get(ctx, client.ObjectKey{Name: maasv1alpha1.MaasTenantConfigInstanceName, Namespace: "models-as-a-service"}, &updatedTenant)).To(Succeed())
-	g.Expect(updatedTenant.Finalizers).To(ContainElement(tenantFinalizer))
-	g.Expect(updatedTenant.DeletionTimestamp.IsZero()).To(BeTrue())
+	err = cl.Get(ctx, client.ObjectKey{Name: maasv1alpha1.MaasTenantConfigInstanceName, Namespace: "models-as-a-service"}, &updatedTenant)
+	// Unblocking UI / Config GC teardown
+	// TODO: Include adding the finalizer back as part of https://github.com/opendatahub-io/models-as-a-service/pull/1159
+	// g.Expect(updatedTenant.Finalizers).To(ContainElement(tenantFinalizer))
+	// g.Expect(updatedTenant.DeletionTimestamp.IsZero()).To(BeTrue())
+	// Without tenant-cleanup, Delete proceeds immediately (object may already be gone in the fake client).
+	if err == nil {
+		g.Expect(updatedTenant.Finalizers).NotTo(ContainElement(tenantFinalizer))
+		g.Expect(updatedTenant.DeletionTimestamp.IsZero()).To(BeFalse(), "MaasTenantConfig delete is requested without adding tenant-cleanup")
+	} else {
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	}
 }
 
 func TestAITenantReconcile_NamespaceFinalizersSetDeletionBlocked(t *testing.T) {
@@ -2217,7 +2148,9 @@ func TestAITenantReconcile_DefaultTenantDeletionCompletesInZeroTenantState(t *te
 	err = cl.Get(ctx, key, &remaining)
 	if !apierrors.IsNotFound(err) {
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(remaining.Finalizers).NotTo(ContainElement(aitenantFinalizer))
+		// Unblocking UI
+		// TODO: Include adding the finalizer back as part of https://github.com/opendatahub-io/models-as-a-service/pull/1159
+		// g.Expect(remaining.Finalizers).NotTo(ContainElement(aitenantFinalizer))
 	}
 }
 

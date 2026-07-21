@@ -22,7 +22,7 @@ import (
 
 func TestNewManager(t *testing.T) {
 	t.Run("returns error when logger is nil", func(t *testing.T) {
-		manager, err := models.NewManager(nil, 15, "", false)
+		manager, err := models.NewManager(nil, 15, "")
 		require.Error(t, err)
 		assert.Nil(t, manager)
 		assert.Contains(t, err.Error(), "log is required")
@@ -31,7 +31,7 @@ func TestNewManager(t *testing.T) {
 	t.Run("creates manager successfully with valid logger", func(t *testing.T) {
 		log := logger.New(true)
 
-		manager, err := models.NewManager(log, 15, "", false)
+		manager, err := models.NewManager(log, 15, "")
 		require.NoError(t, err)
 		assert.NotNil(t, manager)
 	})
@@ -63,7 +63,7 @@ func TestBuildClusterTLSConfig(t *testing.T) {
 
 func TestBuildClusterTLSConfigFromPath(t *testing.T) {
 	t.Run("returns error when logger is nil", func(t *testing.T) {
-		tlsConfig, err := models.BuildClusterTLSConfigFromPath(nil, "/nonexistent", false)
+		tlsConfig, err := models.BuildClusterTLSConfigFromPath(nil, "/nonexistent")
 		require.Error(t, err)
 		assert.Nil(t, tlsConfig)
 	})
@@ -71,7 +71,7 @@ func TestBuildClusterTLSConfigFromPath(t *testing.T) {
 	t.Run("uses system root CAs when CA file is absent", func(t *testing.T) {
 		log := logger.New(true)
 
-		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, "/nonexistent/ca.crt", false)
+		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, "/nonexistent/ca.crt")
 		require.NoError(t, err)
 		require.NotNil(t, tlsConfig)
 
@@ -89,7 +89,7 @@ func TestBuildClusterTLSConfigFromPath(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
-		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, f.Name(), false)
+		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, f.Name())
 		require.Error(t, err)
 		assert.Nil(t, tlsConfig)
 		assert.Contains(t, err.Error(), "failed to parse")
@@ -103,7 +103,7 @@ func TestBuildClusterTLSConfigFromPath(t *testing.T) {
 		require.NoError(t, os.WriteFile(caPath, []byte("placeholder"), 0o000))
 		t.Cleanup(func() { _ = os.Chmod(caPath, 0o644) })
 
-		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, caPath, false)
+		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, caPath)
 		require.Error(t, err)
 		assert.Nil(t, tlsConfig)
 	})
@@ -118,33 +118,13 @@ func TestBuildClusterTLSConfigFromPath(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
-		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, f.Name(), false)
+		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, f.Name())
 		require.NoError(t, err)
 		require.NotNil(t, tlsConfig)
 
 		assert.False(t, tlsConfig.InsecureSkipVerify)
 		assert.Equal(t, uint16(tls.VersionTLS12), tlsConfig.MinVersion)
 		assert.NotNil(t, tlsConfig.RootCAs)
-	})
-
-	t.Run("sets NextProtos when HTTP/2 is enabled", func(t *testing.T) {
-		log := logger.New(true)
-
-		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, "/nonexistent/ca.crt", true)
-		require.NoError(t, err)
-		require.NotNil(t, tlsConfig)
-
-		assert.Equal(t, []string{"h2", "http/1.1"}, tlsConfig.NextProtos)
-	})
-
-	t.Run("does not set NextProtos when HTTP/2 is disabled", func(t *testing.T) {
-		log := logger.New(true)
-
-		tlsConfig, err := models.BuildClusterTLSConfigFromPath(log, "/nonexistent/ca.crt", false)
-		require.NoError(t, err)
-		require.NotNil(t, tlsConfig)
-
-		assert.Nil(t, tlsConfig.NextProtos)
 	})
 }
 

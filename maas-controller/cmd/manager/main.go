@@ -18,7 +18,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	stderrors "errors"
 	"flag"
 	"fmt"
@@ -402,11 +401,6 @@ type managedNamespaceMonitor struct {
 	purpose            string
 	interval           time.Duration
 	needLeaderElection bool
-	// pauseCondition, if set, is evaluated before each tick; returning true skips
-	// ensureManagedNamespaceWithClient for that tick (e.g. to avoid recreating a
-	// namespace that is being intentionally torn down). A returned error also skips
-	// the tick (fail-closed) and is logged; the next tick will retry.
-	pauseCondition func(ctx context.Context) (bool, error)
 }
 
 func (m *managedNamespaceMonitor) NeedLeaderElection() bool {
@@ -420,18 +414,6 @@ func (m *managedNamespaceMonitor) Start(ctx context.Context) error {
 	run := func() {
 		innerCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 		defer cancel()
-		if m.pauseCondition != nil {
-			pause, err := m.pauseCondition(innerCtx)
-			if err != nil {
-				setupLog.Error(err, "unable to evaluate pause condition before namespace maintenance", "namespace", m.namespace, "purpose", m.purpose)
-				return
-			}
-			if pause {
-				setupLog.V(1).Info("skipping namespace maintenance; pause condition active",
-					"namespace", m.namespace, "purpose", m.purpose)
-				return
-			}
-		}
 		if err := ensureManagedNamespaceWithClient(innerCtx, m.namespace, m.purpose, m.clientset); err != nil {
 			// Keep running; the next tick will retry. Alerting on sustained failure is better done via
 			// metrics (e.g. Prometheus counter) in a follow-up if product needs it.
@@ -448,23 +430,6 @@ func (m *managedNamespaceMonitor) Start(ctx context.Context) error {
 		case <-ticker.C:
 			run()
 		}
-	}
-}
-
-// aitenantTeardownPauseCondition builds a managedNamespaceMonitor pauseCondition that skips
-// AITenant namespace self-heal while the maas-controller Deployment advertises teardown
-// (or is already gone), so the monitor cannot recreate ai-tenants while cleanup is in
-// progress or the controller pod is winding down.
-func aitenantTeardownPauseCondition(reader client.Reader, deploymentKey client.ObjectKey) func(context.Context) (bool, error) {
-	return func(ctx context.Context) (bool, error) {
-		var dep appsv1.Deployment
-		if err := reader.Get(ctx, deploymentKey, &dep); err != nil {
-			if errors.IsNotFound(err) {
-				return true, nil
-			}
-			return false, err
-		}
-		return maas.TeardownRequestedOnDeployment(&dep), nil
 	}
 }
 
@@ -513,9 +478,6 @@ func ensureDefaultAITenantBootstrap(ctx context.Context, c client.Client, tenant
 		return false, fmt.Errorf("get maas-controller Deployment for bootstrap gate: %w", err)
 	}
 	if !dep.DeletionTimestamp.IsZero() {
-		return false, nil
-	}
-	if maas.TeardownRequestedOnDeployment(&dep) {
 		return false, nil
 	}
 
@@ -851,16 +813,9 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme,
-		Cache:  cacheOpts,
-		Metrics: metricsserver.Options{
-			BindAddress: metricsAddr,
-			TLSOpts: []func(*tls.Config){
-				func(c *tls.Config) {
-					c.NextProtos = []string{"h2", "http/1.1"}
-				},
-			},
-		},
+		Scheme:                 scheme,
+		Cache:                  cacheOpts,
+		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "maas-controller.models-as-a-service.opendatahub.io",
@@ -948,10 +903,6 @@ func main() {
 		purpose:            "aitenant",
 		interval:           subscriptionNamespaceMaintainInterval,
 		needLeaderElection: enableLeaderElection,
-		pauseCondition: aitenantTeardownPauseCondition(
-			mgr.GetAPIReader(),
-			client.ObjectKey{Name: tenantreconcile.MaaSControllerDeploymentName, Namespace: controllerNamespace},
-		),
 	}); err != nil {
 		setupLog.Error(err, "unable to add AITenant namespace monitor")
 		os.Exit(1)
