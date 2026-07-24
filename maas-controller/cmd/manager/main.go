@@ -853,6 +853,24 @@ func deriveInfraNamespace(controllerNs string) string {
 	}
 }
 
+func parseAITenantDeletionTimeout() time.Duration {
+	const defaultTimeout = 10 * time.Minute
+	v, ok := os.LookupEnv("AITENANT_DELETION_TIMEOUT")
+	if !ok {
+		return defaultTimeout
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		setupLog.Error(err, "invalid AITENANT_DELETION_TIMEOUT, using default", "value", v, "default", defaultTimeout)
+		return defaultTimeout
+	}
+	if d < 0 {
+		setupLog.Info("negative AITENANT_DELETION_TIMEOUT is not allowed, using default", "value", v, "default", defaultTimeout)
+		return defaultTimeout
+	}
+	return d
+}
+
 func setupWebhooks(mgr ctrl.Manager, aitenantNamespace, gatewayNamespace string) error {
 	if err := (&webhook.AITenantValidator{
 		Client:            mgr.GetAPIReader(),
@@ -1128,6 +1146,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MaaSSubscription")
 		os.Exit(1)
 	}
+	aitenantDeletionTimeout := parseAITenantDeletionTimeout()
 	if err := (&maas.AITenantReconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
@@ -1137,6 +1156,7 @@ func main() {
 		AITenantNamespace: aitenantNamespace,
 		GatewayName:       gatewayName,
 		GatewayNamespace:  gatewayNamespace,
+		DeletionTimeout:   aitenantDeletionTimeout,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AITenant")
 		os.Exit(1)
