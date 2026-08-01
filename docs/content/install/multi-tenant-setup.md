@@ -54,6 +54,16 @@ metadata:
 spec:
   gatewayClassName: openshift-default
   listeners:
+    - name: http
+      hostname: ${GATEWAY_HOSTNAME}
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              ${GATEWAY_ACCESS_LABEL}: "true"
     - name: https
       hostname: ${GATEWAY_HOSTNAME}
       port: 443
@@ -115,7 +125,7 @@ oc get gateway ${TENANT_NAME} -n ${GATEWAY_NAMESPACE}
 ```
 
 !!! tip "Automated script"
-    The `scripts/create-ai-tenant.sh` script automates Gateway and AITenant creation.
+    The `scripts/create-ai-tenant.sh` script automates Gateway, Route, and AITenant creation.
     For multi-tenant deployments use the per-gateway label selector and label namespaces manually:
     ```bash
     NAMESPACE_SELECTOR_LABELS="maas.opendatahub.io/gateway-access-red-team=true" \
