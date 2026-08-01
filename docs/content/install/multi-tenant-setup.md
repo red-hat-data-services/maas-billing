@@ -15,7 +15,12 @@ Before creating additional tenants:
 
 Each AITenant requires a dedicated Gateway. Gateways cannot be shared between AITenants.
 
-Get the cluster domain and create the Gateway:
+Get the cluster domain and create the Gateway.
+
+The Gateway uses a per-tenant label selector for `allowedRoutes` so only explicitly
+labelled namespaces can attach HTTPRoutes — more secure than `from: All`. Label each
+namespace that needs access (infra namespace, model namespaces) before or after Gateway
+creation:
 
 ```bash
 TENANT_NAME="red-team"
@@ -23,6 +28,14 @@ CLUSTER_DOMAIN=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spe
 GATEWAY_HOSTNAME="${TENANT_NAME}-maas.${CLUSTER_DOMAIN}"
 GATEWAY_NAMESPACE="openshift-ingress"
 CERT_NAME="router-certs-default"
+GATEWAY_ACCESS_LABEL="maas.opendatahub.io/gateway-access-${TENANT_NAME}"
+
+# Label the namespaces that need to attach HTTPRoutes to this tenant Gateway.
+# At minimum: the infrastructure namespace where maas-api is deployed.
+# Also label any model namespaces (e.g. llm) where LLMInferenceServices run.
+INFRA_NS="odh-ai-gateway-infra"   # adjust if using RHOAI (redhat-ai-gateway-infra)
+oc label namespace "${INFRA_NS}" "${GATEWAY_ACCESS_LABEL}=true" --overwrite
+# oc label namespace llm "${GATEWAY_ACCESS_LABEL}=true" --overwrite  # repeat for model namespaces
 
 cat <<EOF | oc apply -f -
 apiVersion: gateway.networking.k8s.io/v1
@@ -41,20 +54,16 @@ metadata:
 spec:
   gatewayClassName: openshift-default
   listeners:
-    - name: http
-      hostname: ${GATEWAY_HOSTNAME}
-      port: 80
-      protocol: HTTP
-      allowedRoutes:
-        namespaces:
-          from: All
     - name: https
       hostname: ${GATEWAY_HOSTNAME}
       port: 443
       protocol: HTTPS
       allowedRoutes:
         namespaces:
-          from: All
+          from: Selector
+          selector:
+            matchLabels:
+              ${GATEWAY_ACCESS_LABEL}: "true"
       tls:
         mode: Terminate
         certificateRefs:
@@ -64,7 +73,12 @@ spec:
 EOF
 ```
 
-Create an OpenShift Route for external access:
+!!! note "Route auto-provisioning"
+    On OpenShift with `gatewayClassName: openshift-default`, the Gateway controller typically auto-provisions a Route for external access. Check whether a Route was created automatically before creating one manually:
+    ```bash
+    oc get route -n ${GATEWAY_NAMESPACE} -l gateway.networking.k8s.io/gateway-name=${TENANT_NAME}
+    ```
+    If no Route was auto-provisioned, create one manually:
 
 ```bash
 GATEWAY_SERVICE_NAME="${TENANT_NAME}-openshift-default"
@@ -101,9 +115,17 @@ oc get gateway ${TENANT_NAME} -n ${GATEWAY_NAMESPACE}
 ```
 
 !!! tip "Automated script"
-    The `scripts/create-ai-tenant.sh` script automates Gateway, Route, and AITenant creation:
+    The `scripts/create-ai-tenant.sh` script automates Gateway and AITenant creation.
+    For multi-tenant deployments use the per-gateway label selector and label namespaces manually:
     ```bash
-    ./scripts/create-ai-tenant.sh red-team
+    NAMESPACE_SELECTOR_LABELS="maas.opendatahub.io/gateway-access-red-team=true" \
+      ./scripts/create-ai-tenant.sh red-team
+    ```
+    Then label the infra namespace and any model namespaces:
+    ```bash
+    oc label namespace odh-ai-gateway-infra \
+      maas.opendatahub.io/gateway-access-red-team=true --overwrite
+    # oc label namespace llm maas.opendatahub.io/gateway-access-red-team=true --overwrite
     ```
 
 ## 2. Create the AITenant CR
@@ -171,10 +193,10 @@ Expected labels:
 - `ai-gateway.opendatahub.io/tenant=<tenant-name>`
 - `maas.opendatahub.io/managed-by-aitenant=true`
 
-Verify the Tenant CR exists:
+Verify the MaasTenantConfig CR exists:
 
 ```bash
-oc get tenant default-tenant -n ai-tenant-${TENANT_NAME}
+oc get maastenantconfig default-tenant -n ai-tenant-${TENANT_NAME}
 ```
 
 Verify the maas-api deployment is running in the infrastructure namespace:
@@ -256,7 +278,7 @@ EOF
 ```
 
 !!! note
-    MaaSAuthPolicy and MaaSSubscription must be created in a namespace that contains a `Tenant` CR. The admission webhook rejects them otherwise.
+    MaaSAuthPolicy and MaaSSubscription must be created in a namespace that contains a `MaasTenantConfig` CR. The admission webhook rejects them otherwise.
 
 ## Webhook Validation
 
@@ -304,20 +326,20 @@ The controller finalizer cleans up:
     User-created RoleBindings are **not** deleted. Remove them manually before or after deleting the AITenant. Stale RoleBindings that reference recreated Roles can re-enable access.
 
 !!! tip "Automated cleanup"
-    Use the `scripts/delete-ai-tenant.sh` script for full cleanup including Gateway and Route:
+    Use the `scripts/delete-ai-tenant.sh` script for full cleanup including Gateway:
     ```bash
     ./scripts/delete-ai-tenant.sh red-team
     ```
 
 ## Known Limitations
 
-!!! danger "External models are not supported in multi-tenant deployments"
-    The ExternalModel reconciler is not tenant-aware — it hardcodes HTTPRoutes to the default tenant's gateway. When multiple tenants are running, each tenant's IPP stack conflicts with these routes, breaking external models for all tenants including the default. See [External Model Setup — Multi-Tenant Limitation](external-model-setup.md#multi-tenant-limitation) for details.
+!!! warning "External models are only supported for the default tenant"
+    External models work for the default tenant only. Non-default tenant IPP instances have the ExternalModel controller disabled to prevent HTTPRoute conflicts. See [External Model Setup — Multi-Tenant Limitation](external-model-setup.md#multi-tenant-limitation) for details.
 
 ## See Also
 
 - [AITenant CRD Reference](../reference/crds/ai-tenant.md)
-- [Tenant CRD Reference](../reference/crds/tenant.md)
+- [MaasTenantConfig CRD Reference](../reference/crds/tenant.md)
 - [Tenant RBAC](../configuration-and-management/tenant-rbac.md)
 - [Multi-Tenant Validation](multi-tenant-validation.md)
 - [API Reference](../reference/api-reference.md)

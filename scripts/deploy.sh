@@ -13,6 +13,8 @@
 #                                 Policy engine is auto-selected:
 #                                   odh → kuadrant (community v1.4.2)
 #                                   rhoai → rhcl (Red Hat Connectivity Link)
+#   --policy-engine <rhcl|kuadrant>
+#                                 Override rate-limiting policy engine
 #   --enable-tls-backend          Enable TLS for Authorino/MaaS API (default: on)
 #   --enable-keycloak             Deploy Keycloak for external OIDC (optional)
 #   --namespace <namespace>       Target namespace
@@ -133,7 +135,9 @@ esac
 
 DEPLOYMENT_MODE="${DEPLOYMENT_MODE:-operator}"
 OPERATOR_TYPE="${OPERATOR_TYPE:-odh}"
-POLICY_ENGINE=""  # Auto-determined: odh→kuadrant, rhoai→rhcl
+POLICY_ENGINE="${POLICY_ENGINE:-}"  # Auto-determined unless set via env or --policy-engine
+RHCL_STARTING_CSV="${RHCL_STARTING_CSV:-}"
+RHCL_NAMESPACE="${RHCL_NAMESPACE:-kuadrant-system}"
 NAMESPACE="${DEPLOYMENT_NAMESPACE:-}"  # Auto-determined based on operator type
 ENABLE_TLS_BACKEND="${ENABLE_TLS_BACKEND:-true}"
 ENABLE_KEYCLOAK="${ENABLE_KEYCLOAK:-false}"
@@ -174,6 +178,12 @@ OPTIONS:
       - rhoai → rhcl (Red Hat Connectivity Link)
       - odh → kuadrant (community v1.4.2 with AuthPolicy v1)
       Only applies when --deployment-mode=operator
+
+  --policy-engine <rhcl|kuadrant>
+      Rate-limiting policy engine (default: auto-selected)
+      - rhcl: Red Hat Connectivity Link from redhat-operators (stable channel head)
+      - kuadrant: upstream community catalog (v1.4.2)
+      Overrides auto-selection for both operator and kustomize modes.
 
   --enable-tls-backend
       Enable TLS backend for Authorino and MaaS API (default: enabled)
@@ -251,6 +261,9 @@ ENVIRONMENT VARIABLES:
   OPERATOR_STARTING_CSV     ODH Subscription startingCSV (optional; when unset, follows the channel head)
   OPERATOR_INSTALL_PLAN_APPROVAL  ODH Subscription OLM approval (default: Manual — no auto-upgrades; first InstallPlan is auto-approved by the script)
   OPERATOR_TYPE             Operator type (rhoai/odh)
+  POLICY_ENGINE             Policy engine override (rhcl|kuadrant)
+  RHCL_STARTING_CSV         Pin RHCL operator CSV (default: channel head on redhat-operators)
+  RHCL_NAMESPACE            RHCL operator/Kuadrant workload namespace (default: kuadrant-system)
   EXTERNAL_OIDC            Enable external OIDC on maas-api (true/false)
   OIDC_ISSUER_URL          External OIDC issuer URL for maas-api AuthPolicy patching
   LOG_LEVEL                 Logging verbosity (DEBUG, INFO, WARN, ERROR)
@@ -324,6 +337,11 @@ parse_arguments() {
       --operator-type)
         require_flag_value "$1" "${2:-}"
         OPERATOR_TYPE="$2"
+        shift 2
+        ;;
+      --policy-engine)
+        require_flag_value "$1" "${2:-}"
+        POLICY_ENGINE="$2"
         shift 2
         ;;
       --enable-tls-backend)
@@ -473,10 +491,17 @@ validate_configuration() {
     fi
   fi
 
-  # Auto-determine policy engine based on operator type
+  # Auto-determine policy engine based on operator type unless explicitly set.
   # - ODH uses community Kuadrant (v1.4.2 from upstream catalog has AuthPolicy v1)
   # - RHOAI uses RHCL (Red Hat Connectivity Link - downstream)
-  if [[ "$DEPLOYMENT_MODE" == "operator" ]]; then
+  if [[ -n "$POLICY_ENGINE" ]]; then
+    if [[ ! "$POLICY_ENGINE" =~ ^(rhcl|kuadrant)$ ]]; then
+      log_error "Invalid policy engine: $POLICY_ENGINE"
+      log_error "Must be 'rhcl' or 'kuadrant'"
+      exit 1
+    fi
+    log_debug "Using explicitly configured policy engine: $POLICY_ENGINE"
+  elif [[ "$DEPLOYMENT_MODE" == "operator" ]]; then
     case "$OPERATOR_TYPE" in
       odh)
         POLICY_ENGINE="kuadrant"
@@ -723,10 +748,12 @@ EOF
   # Infrastructure namespace is configurable via deployment overlays (params.env).
   log_info ""
   log_info "Waiting for Tenant reconciler to deploy maas-api..."
-  local infra_namespace_raw="${INFRA_NAMESPACE:-AUTO}"
+  local infra_namespace_raw="${INFRA_NAMESPACE-AUTO}"
   local infra_namespace
   if [ "$infra_namespace_raw" = "AUTO" ]; then
     infra_namespace=$(derive_infra_namespace "$NAMESPACE")
+  elif [ -z "$infra_namespace_raw" ]; then
+    infra_namespace="$NAMESPACE"
   else
     infra_namespace="$infra_namespace_raw"
   fi
@@ -912,10 +939,12 @@ validate_postgres_connection() {
 # wait_for_operator_maas_api waits for maas-api to be deployed by the Tenant
 # reconciler (maas-controller) in the infrastructure namespace.
 wait_for_operator_maas_api() {
-  local infra_namespace_raw="${INFRA_NAMESPACE:-AUTO}"
+  local infra_namespace_raw="${INFRA_NAMESPACE-AUTO}"
   local infra_namespace
   if [ "$infra_namespace_raw" = "AUTO" ]; then
     infra_namespace=$(derive_infra_namespace "$NAMESPACE")
+  elif [ -z "$infra_namespace_raw" ]; then
+    infra_namespace="$NAMESPACE"
   else
     infra_namespace="$infra_namespace_raw"
   fi
@@ -943,10 +972,13 @@ wait_for_operator_maas_api() {
 
 deploy_postgresql() {
   # Infrastructure namespace where maas-api runs (AUTO = derive from controller namespace)
-  local infra_ns_raw="${INFRA_NAMESPACE:-AUTO}"
+  local controller_ns="${NAMESPACE:-opendatahub}"
+  local infra_ns_raw="${INFRA_NAMESPACE-AUTO}"
   local infra_ns
   if [ "$infra_ns_raw" = "AUTO" ]; then
-    infra_ns=$(derive_infra_namespace "$NAMESPACE")
+    infra_ns=$(derive_infra_namespace "$controller_ns")
+  elif [ -z "$infra_ns_raw" ]; then
+    infra_ns="$controller_ns"
   else
     infra_ns="$infra_ns_raw"
   fi
@@ -965,7 +997,7 @@ deploy_postgresql() {
     log_warn "  (AWS RDS, Crunchy Operator, Azure Database, etc.)"
     log_warn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     # setup-database.sh handles upgrade detection and namespace selection
-    "${SCRIPT_DIR}/setup-database.sh"
+    NAMESPACE="$controller_ns" "${SCRIPT_DIR}/setup-database.sh"
   fi
 }
 
@@ -1053,12 +1085,20 @@ install_policy_engine() {
   case "$POLICY_ENGINE" in
     rhcl)
       log_info "Installing RHCL (Red Hat Connectivity Link - downstream)"
+      local rhcl_ns="${RHCL_NAMESPACE:-kuadrant-system}"
+      local rhcl_starting_csv="${RHCL_STARTING_CSV:-}"
+      if [[ -n "$rhcl_starting_csv" ]]; then
+        log_info "Pinning RHCL operator to startingCSV: $rhcl_starting_csv"
+      else
+        log_info "Using RHCL channel head from redhat-operators (stable)"
+      fi
+      log_info "Installing RHCL into namespace: $rhcl_ns"
       if ! install_olm_operator \
         "rhcl-operator" \
-        "rh-connectivity-link" \
+        "$rhcl_ns" \
         "redhat-operators" \
         "stable" \
-        "" \
+        "$rhcl_starting_csv" \
         "AllNamespaces" \
         "" \
         ""; then
@@ -1067,10 +1107,10 @@ install_policy_engine() {
       fi
 
       # Patch RHCL CSV to recognize OpenShift Gateway controller
-      patch_kuadrant_csv "rh-connectivity-link" "rhcl-operator"
+      patch_kuadrant_csv "$rhcl_ns" "rhcl-operator"
 
       # Apply RHCL/Kuadrant custom resource
-      apply_kuadrant_cr "rh-connectivity-link"
+      apply_kuadrant_cr "$rhcl_ns"
       ;;
 
     kuadrant)
@@ -1457,12 +1497,29 @@ apply_kuadrant_cr() {
   # Setup Gateway using standalone script (replaces inline setup_gateway_api + setup_maas_gateway)
   # The script handles GatewayClass creation, Gateway creation with TLS cert detection,
   # and waits for Gateway to be Programmed before returning.
+  # Default allowedRoutes to the app namespace so maas-api HTTPRoutes can attach.
+  # Include MODEL_NAMESPACE when set (e2e/demos deploy models outside the app ns).
+  # Override with ALLOWED_ROUTE_NAMESPACES or NAMESPACE_SELECTOR_LABELS as needed.
+  local gateway_allowed_namespaces="${ALLOWED_ROUTE_NAMESPACES:-}"
+  if [[ -z "$gateway_allowed_namespaces" && -z "${NAMESPACE_SELECTOR_LABELS:-}" ]]; then
+    # Always include the infra namespace: maas-api-route lives there and must attach
+    # to the gateway for API key/subscription calls to reach maas-api.
+    local infra_ns
+    infra_ns=$(derive_infra_namespace "$NAMESPACE")
+    gateway_allowed_namespaces="$NAMESPACE,$infra_ns"
+    if [[ -n "${MODEL_NAMESPACE:-}" && "${MODEL_NAMESPACE}" != "$NAMESPACE" ]]; then
+      gateway_allowed_namespaces="${gateway_allowed_namespaces},${MODEL_NAMESPACE}"
+    fi
+  fi
+
   INGRESS_MODE="${INGRESS_MODE:-route}" \
   DISCONNECTED="${DISCONNECTED:-false}" \
   CLUSTER_DOMAIN="${CLUSTER_DOMAIN:-}" \
   CERT_NAME="${CERT_NAME:-}" \
   DRY_RUN="${DRY_RUN:-false}" \
   MAAS_MANIFEST_REF="${MAAS_MANIFEST_REF:-}" \
+  ALLOWED_ROUTE_NAMESPACES="${gateway_allowed_namespaces}" \
+  NAMESPACE_SELECTOR_LABELS="${NAMESPACE_SELECTOR_LABELS:-}" \
   "${SCRIPT_DIR}/setup-gateway.sh" || {
     log_error "Gateway setup failed"
     return 1
@@ -1692,14 +1749,10 @@ configure_tenant_external_oidc() {
 configure_tls_backend() {
   log_info "Configuring TLS backend for Authorino and MaaS API..."
 
-  # Determine Authorino namespace based on rate limiter
-  local authorino_namespace
+  # Authorino and Kuadrant workloads run in kuadrant-system for both RHCL and community Kuadrant.
+  local authorino_namespace="${RHCL_NAMESPACE:-kuadrant-system}"
   case "$POLICY_ENGINE" in
-    rhcl)
-      authorino_namespace="rh-connectivity-link"
-      ;;
-    kuadrant)
-      authorino_namespace="kuadrant-system"
+    rhcl|kuadrant)
       ;;
     *)
       log_warn "Unknown policy engine: $POLICY_ENGINE, defaulting to kuadrant-system"
@@ -1740,10 +1793,12 @@ configure_tls_backend() {
   log_info "Restarting deployments to pick up TLS configuration..."
 
   # maas-api deploys to infrastructure namespace
-  local infra_namespace_raw="${INFRA_NAMESPACE:-AUTO}"
+  local infra_namespace_raw="${INFRA_NAMESPACE-AUTO}"
   local infra_namespace
   if [ "$infra_namespace_raw" = "AUTO" ]; then
     infra_namespace=$(derive_infra_namespace "$NAMESPACE")
+  elif [ -z "$infra_namespace_raw" ]; then
+    infra_namespace="$NAMESPACE"
   else
     infra_namespace="$infra_namespace_raw"
   fi
