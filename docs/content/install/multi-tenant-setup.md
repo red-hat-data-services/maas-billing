@@ -83,7 +83,12 @@ spec:
 EOF
 ```
 
-Create an OpenShift Route for external access:
+!!! note "Route auto-provisioning"
+    On OpenShift with `gatewayClassName: openshift-default`, the Gateway controller typically auto-provisions a Route for external access. Check whether a Route was created automatically before creating one manually:
+    ```bash
+    oc get route -n ${GATEWAY_NAMESPACE} -l gateway.networking.k8s.io/gateway-name=${TENANT_NAME}
+    ```
+    If no Route was auto-provisioned, create one manually:
 
 ```bash
 GATEWAY_SERVICE_NAME="${TENANT_NAME}-openshift-default"
@@ -198,10 +203,10 @@ Expected labels:
 - `ai-gateway.opendatahub.io/tenant=<tenant-name>`
 - `maas.opendatahub.io/managed-by-aitenant=true`
 
-Verify the Tenant CR exists:
+Verify the MaasTenantConfig CR exists:
 
 ```bash
-oc get tenant default-tenant -n ai-tenant-${TENANT_NAME}
+oc get maastenantconfig default-tenant -n ai-tenant-${TENANT_NAME}
 ```
 
 Verify the maas-api deployment is running in the infrastructure namespace:
@@ -283,7 +288,7 @@ EOF
 ```
 
 !!! note
-    MaaSAuthPolicy and MaaSSubscription must be created in a namespace that contains a `Tenant` CR. The admission webhook rejects them otherwise.
+    MaaSAuthPolicy and MaaSSubscription must be created in a namespace that contains a `MaasTenantConfig` CR. The admission webhook rejects them otherwise.
 
 ## Webhook Validation
 
@@ -331,7 +336,7 @@ The controller finalizer cleans up:
     User-created RoleBindings are **not** deleted. Remove them manually before or after deleting the AITenant. Stale RoleBindings that reference recreated Roles can re-enable access.
 
 !!! tip "Automated cleanup"
-    Use the `scripts/delete-ai-tenant.sh` script for full cleanup including Gateway and Route:
+    Use the `scripts/delete-ai-tenant.sh` script for full cleanup including Gateway:
     ```bash
     ./scripts/delete-ai-tenant.sh red-team
     ```
@@ -344,7 +349,7 @@ The controller finalizer cleans up:
 ## See Also
 
 - [AITenant CRD Reference](../reference/crds/ai-tenant.md)
-- [Tenant CRD Reference](../reference/crds/tenant.md)
+- [MaasTenantConfig CRD Reference](../reference/crds/tenant.md)
 - [Tenant RBAC](../configuration-and-management/tenant-rbac.md)
 - [Multi-Tenant Validation](multi-tenant-validation.md)
 - [API Reference](../reference/api-reference.md)
