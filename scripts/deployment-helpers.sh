@@ -1989,7 +1989,7 @@ build_allowed_routes_json() {
     labels_json+="}"
     if [[ "$labels_json" == "{}" ]]; then
       # No valid key=value pairs — fall back to the secure default instead of
-      # emitting matchLabels:{} which matches all namespaces (equivalent to from: All).
+      # emitting matchLabels:{} which matches all namespaces.
       log_warn "NAMESPACE_SELECTOR_LABELS has no valid key=value pairs; falling back to from: Same" >&2
       printf '{"namespaces":{"from":"Same"}}'
       return 0
@@ -2003,7 +2003,7 @@ build_allowed_routes_json() {
 # patch_gateway_allowed_routes <gateway_name> <gateway_namespace>
 #   Ensures ALL listeners' allowedRoutes on an existing Gateway match the desired
 #   configuration. Patches when:
-#     - Any listener has from: All (upgrades insecure default), OR
+#     - Any listener has an insecure allowedRoutes default, OR
 #     - ALLOWED_ROUTE_NAMESPACES or NAMESPACE_SELECTOR_LABELS is set (applies user config)
 #   Skips when all listeners are already at a secure non-All state and no custom
 #   config is requested. Applies the same allowedRoutes to every listener so that
@@ -2031,12 +2031,17 @@ patch_gateway_allowed_routes() {
   local has_custom_config=false
   [[ -n "${ALLOWED_ROUTE_NAMESPACES:-}" || -n "${NAMESPACE_SELECTOR_LABELS:-}" ]] && has_custom_config=true
 
-  # Check whether any listener still carries the insecure from: All default.
+  # Check whether any listener still carries an insecure allowedRoutes default.
+  # Treat a read failure as needing a patch (fail closed) rather than silently skipping.
   local any_all=false
   local i current_from
   for ((i=0; i<listener_count; i++)); do
-    current_from=$(kubectl get gateway "$gateway_name" -n "$gateway_namespace" \
-      -o jsonpath="{.spec.listeners[$i].allowedRoutes.namespaces.from}" 2>/dev/null || echo "")
+    if ! current_from=$(kubectl get gateway "$gateway_name" -n "$gateway_namespace" \
+      -o jsonpath="{.spec.listeners[$i].allowedRoutes.namespaces.from}" 2>/dev/null); then
+      log_warn "  Could not read listener $i allowedRoutes from Gateway ${gateway_namespace}/${gateway_name} — assuming patch needed"
+      any_all=true
+      break
+    fi
     [[ "$current_from" == "All" ]] && any_all=true && break
   done
 
