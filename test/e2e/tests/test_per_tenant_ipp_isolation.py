@@ -55,6 +55,8 @@ from test_helper import (
     _gateway_url,
     _get_cluster_token,
     _maas_api_url,
+    _poll_status,
+    _wait_for_gateway_auth_enforced,
     _wait_reconcile,
 )
 
@@ -320,8 +322,14 @@ class TestPerTenantIPPRouting:
         default_names = per_tenant_ipp_names(DEFAULT_AITENANT_NAME)
         tenant_names = per_tenant_ipp_names(case_b["tenant_label_name"])
 
-        time.sleep(2)
+        _wait_for_gateway_auth_enforced()
         api_key = _create_default_api_key()
+        # Warm gateway allowlist after prior tests may reset maas-gateway-auth to {}.
+        warmup = _poll_status(api_key, 200, path=MODEL_PATH, timeout=90)
+        assert warmup.status_code == 200, (
+            f"Default gateway inference warmup failed: {warmup.status_code} "
+            f"{redact_sensitive(warmup.text[:500])}"
+        )
         response = _post_hybrid_chat(_gateway_url(), MODEL_PATH, api_key)
         assert response.status_code == 200, (
             f"Default gateway hybrid BBR failed: {response.status_code} "
