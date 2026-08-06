@@ -109,14 +109,20 @@ spec:
      protocol: HTTP
      allowedRoutes:
        namespaces:
-         from: All
+         from: Selector
+         selector:
+           matchLabels:
+             maas.opendatahub.io/gateway-access: "true"
    - name: https
      hostname: maas.${CLUSTER_DOMAIN}
      port: 443
      protocol: HTTPS
      allowedRoutes:
        namespaces:
-         from: All
+         from: Selector
+         selector:
+           matchLabels:
+             maas.opendatahub.io/gateway-access: "true"
      tls:
        certificateRefs:
        - group: ""
@@ -124,6 +130,15 @@ spec:
          name: ${CERT_NAME}
        mode: Terminate
 EOF
+```
+
+After creating the Gateway, label each namespace that needs to attach HTTPRoutes:
+
+```bash
+# Label the application namespace (where maas-api HTTPRoutes are created)
+oc label namespace redhat-ods-applications maas.opendatahub.io/gateway-access=true --overwrite
+# Label the model namespace (where model HTTPRoutes are created)
+oc label namespace <model-namespace> maas.opendatahub.io/gateway-access=true --overwrite
 ```
 
 !!! note "TLS certificate"
