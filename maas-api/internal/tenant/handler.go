@@ -259,7 +259,7 @@ func selectBestListener(specListeners []any, statusByName map[string]map[string]
 			return listenerPort, listenerProtocol, listenerHostname
 		}
 
-		if !foundHTTP {
+		if listenerProtocol == protocolHTTP && !foundHTTP {
 			foundHTTP = true
 			httpPort = listenerPort
 			httpHostname = listenerHostname
