@@ -269,5 +269,6 @@ func selectBestListener(specListeners []any, statusByName map[string]map[string]
 	if foundHTTP {
 		return httpPort, protocolHTTP, httpHostname
 	}
+	// No ready listeners found; return safe defaults.
 	return 443, protocolHTTPS, ""
 }
