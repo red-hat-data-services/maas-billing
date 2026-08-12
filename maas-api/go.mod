@@ -20,7 +20,7 @@ require (
 )
 
 require (
-	github.com/jackc/pgx/v5 v5.7.6
+	github.com/jackc/pgx/v5 v5.9.0
 	github.com/mattn/go-sqlite3 v1.14.32
 )
 
