@@ -95,6 +95,8 @@ const (
 	MaaSControllerDeploymentName = "maas-controller"
 	MaaSDBSecretName             = "maas-db-config" //nolint:gosec // secret name reference, not a credential
 	MaaSDBSecretKey              = "DB_CONNECTION_URL"
+	MaaSGatewayIdentitySecretName = "maas-gateway-identity" //nolint:gosec // secret name reference, not a credential
+	MaaSGatewayIdentitySecretKey  = "token"
 
 	// Condition types aligned with ODH internal/controller/status for DSC aggregation parity.
 	ConditionDependenciesAvailable      = "DependenciesAvailable"

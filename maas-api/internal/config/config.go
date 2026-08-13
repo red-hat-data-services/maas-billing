@@ -94,6 +94,11 @@ type Config struct {
 	// Default: 1.0 (sample everything). Set lower in production for high-volume APIs.
 	OTELSampleRate float64
 
+	// GatewayIdentityToken is a shared secret injected by the gateway AuthPolicy after
+	// successful authentication. maas-api requires callers to present a matching
+	// X-MaaS-Gateway-Auth header when this value is set.
+	GatewayIdentityToken string
+
 	// Deprecated flag (backward compatibility with pre-TLS version)
 	deprecatedHTTPPort string
 }
@@ -148,6 +153,7 @@ func Load() *Config {
 		OTELEndpoint:              env.GetString("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
 		OTELInsecure:              otelInsecure,
 		OTELSampleRate:            otelSampleRate,
+		GatewayIdentityToken:      env.GetString("GATEWAY_IDENTITY_TOKEN", ""),
 		// Deprecated env var (backward compatibility with pre-TLS version)
 		deprecatedHTTPPort: env.GetString("PORT", ""),
 	}

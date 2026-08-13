@@ -236,7 +236,7 @@ func registerHandlers(
 	}
 	log.Info("Informer caches synced successfully")
 
-	v1Routes := router.Group("/v1")
+	v1Routes := router.Group("/v1", token.RequireGatewayIdentity(log, cfg.GatewayIdentityToken))
 
 	authPolicyChecker := authpolicy.NewChecker(log, cluster.MaaSAuthPolicyLister)
 	subscriptionSelector := subscription.NewSelector(log, cluster.MaaSSubscriptionLister, cluster.MaaSModelRefLister, authPolicyChecker)

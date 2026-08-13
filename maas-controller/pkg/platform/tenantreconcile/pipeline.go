@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -89,6 +90,12 @@ func RunPlatform(
 	resources, err := PostRender(ctx, log, tenant, rendered, params)
 	if err != nil {
 		return nil, fmt.Errorf("post-render: %w", err)
+	}
+
+	// Ensure the shared gateway identity secret exists before maas-api pods start
+	// so GATEWAY_IDENTITY_TOKEN can be mounted from maas-gateway-identity.
+	if _, err := EnsureGatewayIdentityToken(ctx, c, appNs, os.Getenv("GATEWAY_IDENTITY_TOKEN")); err != nil {
+		return nil, fmt.Errorf("gateway identity secret: %w", err)
 	}
 
 	if err := ApplyRendered(ctx, c, scheme, tenant, appNs, mcfg, resources); err != nil {
