@@ -1786,6 +1786,39 @@ func TestBuildGatewayAuthPolicySpec_DenyClientIdentityHeaders(t *testing.T) {
 	}
 }
 
+func TestBuildGatewayAuthPolicySpec_InjectsGatewayAuthHeader(t *testing.T) {
+	r := &MaaSAuthPolicyReconciler{
+		InfraNamespace:       "odh-ai-gateway-infra",
+		GatewayIdentityToken: "gateway-test-token",
+		MetadataCacheTTL:     60,
+		AuthzCacheTTL:        60,
+	}
+	spec := r.buildGatewayAuthPolicySpec("{}", nil, false, "", "models-as-a-service", "test-gateway-ns", "test-gateway")
+	obj := &unstructured.Unstructured{Object: map[string]any{"spec": spec}}
+
+	headers, found, err := unstructured.NestedMap(
+		obj.Object,
+		"spec", "defaults", "rules", "response", "success", "headers",
+	)
+	if err != nil || !found {
+		t.Fatalf("response.success.headers missing: found=%v err=%v", found, err)
+	}
+	gatewayAuth, ok := headers["X-MaaS-Gateway-Auth"].(map[string]any)
+	if !ok {
+		t.Fatal("X-MaaS-Gateway-Auth header missing from gateway AuthPolicy response")
+	}
+	plain, ok := gatewayAuth["plain"].(map[string]any)
+	if !ok {
+		t.Fatalf("X-MaaS-Gateway-Auth.plain missing: %#v", gatewayAuth)
+	}
+	if plain["expression"] != "'gateway-test-token'" {
+		t.Fatalf("X-MaaS-Gateway-Auth expression = %#v, want 'gateway-test-token'", plain["expression"])
+	}
+	if _, hasValue := plain["value"]; hasValue {
+		t.Fatal("X-MaaS-Gateway-Auth must use plain.expression, not plain.value")
+	}
+}
+
 func TestBuildGatewayAuthPolicySpec_OIDCAuth(t *testing.T) {
 	oidc := &oidcConfig{
 		IssuerURL: "https://keycloak.example.com/realms/test",
