@@ -17,6 +17,7 @@ Prerequisites:
 import json
 import logging
 import subprocess
+import time
 
 import pytest
 import requests
@@ -45,11 +46,12 @@ from test_helper import (
     _create_maas_model_ref,
     _delete_cr,
     _get_cluster_token,
-    _wait_reconcile,
     chat,
 )
 
 log = logging.getLogger(__name__)
+
+pytestmark = pytest.mark.xdist_group("tenant_isolation")
 
 
 # Multi-tenant model inference tests are enabled by default (Phase 1 implementation)
@@ -200,7 +202,7 @@ class TestTenantModelInference:
         assert api_key, f"API key missing in response: {redact_sensitive(api_key_response.json())}"
 
         # Allow API key to propagate before sending inference request
-        _wait_reconcile()
+        time.sleep(8)
 
         # Send inference request through tenant gateway
         model_url = f"{gateway_url}{case_a['model_path']}"
@@ -339,7 +341,7 @@ class TestTenantBodyRouting:
         case_a, _ = tenant_inference_cases
         gateway_url = _get_tenant_gateway_url(case_a["gateway_name"])
         api_key = _create_tenant_api_key(gateway_url, case_a)
-        _wait_reconcile()
+        time.sleep(8)
 
         r = self._post_chat(gateway_url, case_a["model_path"], api_key, {
             "model": "facebook/opt-125m",
@@ -358,7 +360,7 @@ class TestTenantBodyRouting:
         case_a, _ = tenant_inference_cases
         gateway_url = _get_tenant_gateway_url(case_a["gateway_name"])
         api_key = _create_tenant_api_key(gateway_url, case_a)
-        _wait_reconcile()
+        time.sleep(8)
 
         r = self._post_chat(gateway_url, case_a["model_path"], api_key, {
             "model": "nonexistent-model",
@@ -375,7 +377,7 @@ class TestTenantBodyRouting:
         case_a, _ = tenant_inference_cases
         gateway_url = _get_tenant_gateway_url(case_a["gateway_name"])
         api_key = _create_tenant_api_key(gateway_url, case_a)
-        _wait_reconcile()
+        time.sleep(8)
 
         r = self._post_chat(gateway_url, case_a["model_path"], api_key, {
             "messages": [{"role": "user", "content": "hello"}],
@@ -393,7 +395,7 @@ class TestTenantBodyRouting:
         for case in (case_a, case_b):
             gateway_url = _get_tenant_gateway_url(case["gateway_name"])
             api_key = _create_tenant_api_key(gateway_url, case)
-            _wait_reconcile()
+            time.sleep(8)
 
             r = self._post_chat(gateway_url, case["model_path"], api_key, {
                 "model": "facebook/opt-125m",

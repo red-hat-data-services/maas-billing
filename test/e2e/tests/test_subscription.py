@@ -95,10 +95,12 @@ from test_helper import (
     _scale_kuadrant_controller_down,
     _scale_kuadrant_controller_up,
     _wait_for_subscription_trlp_status,
-    _wait_reconcile,
+    _wait_for_cr_absent,
 )
 
 log = logging.getLogger(__name__)
+
+pytestmark = pytest.mark.xdist_group("api_keys")
 
 
 # Generated resource names (for TestManagedAnnotation)
@@ -140,10 +142,12 @@ def _get_default_api_key() -> str:
     """
     pid = os.getpid()
     if pid not in _default_api_key_cache:
+        from worker_tenant_fixtures import xdist_worker_suffix
+
         oc_token = _get_cluster_token()
         _default_api_key_cache[pid] = _create_api_key(
             oc_token,
-            name="e2e-default-key",
+            name=f"e2e-default-key-{xdist_worker_suffix()}",
             subscription=SIMULATOR_SUBSCRIPTION,
         )
     return _default_api_key_cache[pid]
@@ -381,6 +385,7 @@ class TestSubscriptionEnforcement:
 
     def test_subscribed_user_gets_200(self):
         """API key with matching group should access the model. Polls for AuthPolicy enforcement."""
+        _wait_for_gateway_auth_enforced()
         api_key = _get_default_api_key()
         r = _poll_status(api_key, 200, timeout=90)
         log.info(f"Subscribed API key -> {r.status_code}")
@@ -417,8 +422,8 @@ class TestSubscriptionEnforcement:
                     },
                 },
             })
-            _wait_reconcile()
-            
+            _wait_for_maas_auth_policy_phase("e2e-auth-pass-sub-fail", require_enforced=False)
+
             # Now auth passes (system:authenticated in AuthPolicy) but subscription fails
             # (premium subscription only allows premium-user, not system:authenticated)
             r = _poll_status(api_key, 403, path=PREMIUM_MODEL_PATH, timeout=30)
@@ -429,8 +434,9 @@ class TestSubscriptionEnforcement:
                     f"Expected subscription-related 403, got: {r.text[:200]}"
         finally:
             _delete_cr("maasauthpolicy", "e2e-auth-pass-sub-fail")
-            _wait_reconcile()
+            _wait_for_cr_absent("maasauthpolicy", "e2e-auth-pass-sub-fail")
 
+    @pytest.mark.serial
     def test_rate_limit_exhaustion_gets_429(self):
         """
         Test that a user gets 429 when they actually exceed their token rate limit.
@@ -463,7 +469,7 @@ class TestSubscriptionEnforcement:
                 model_refs=[model_ref],
                 groups=["system:authenticated"]
             )
-            _wait_reconcile()
+            _wait_for_maas_auth_policy_phase(auth_policy_name, require_enforced=False)
 
             # 2. Create subscription with low token limit
             _create_test_subscription(
@@ -473,7 +479,7 @@ class TestSubscriptionEnforcement:
                 token_limit=token_limit,
                 window=window
             )
-            _wait_reconcile()
+            _wait_for_maas_subscription_phase(subscription_name)
 
             # Wait for TRLP to be created AND enforced by Kuadrant/Limitador.
             # Without this, requests bypass token rate limiting entirely.
@@ -542,9 +548,10 @@ class TestSubscriptionEnforcement:
             # Clean up in reverse order of creation
             _delete_cr("maassubscription", subscription_name)
             _delete_cr("maasauthpolicy", auth_policy_name)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
             log.info("Cleaned up rate limit test resources")
 
+    @pytest.mark.serial
     def test_models_endpoint_exempt_from_rate_limiting(self):
         """
         Test that /v1/models endpoint remains accessible when token quota is exhausted.
@@ -669,7 +676,7 @@ class TestSubscriptionEnforcement:
             # Clean up
             _delete_cr("maassubscription", subscription_name)
             _delete_cr("maasauthpolicy", auth_policy_name)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
             log.info("Cleaned up models endpoint exemption test resources")
 
 
@@ -680,6 +687,7 @@ class TestMultipleSubscriptionsPerModel:
     were AND'd, requiring a user to be in ALL subscriptions.
     """
 
+    @pytest.mark.serial
     def test_user_in_one_of_two_subscriptions_gets_200(self):
         """Add a 2nd subscription for a different group. API key only in the original
         group should still get 200 (not blocked by the 2nd sub's group check)."""
@@ -700,7 +708,7 @@ class TestMultipleSubscriptionsPerModel:
             log.info(f"API key in 1 of 2 subs -> {r.status_code}")
         finally:
             _delete_cr("maassubscription", "e2e-extra-sub")
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", "e2e-extra-sub")
 
 
 class TestMultipleAuthPoliciesPerModel:
@@ -730,8 +738,9 @@ class TestMultipleAuthPoliciesPerModel:
                     "modelRefs": [{"name": PREMIUM_MODEL_REF, "namespace": MODEL_NAMESPACE, "tokenRateLimits": [{"limit": 100, "window": "1m"}]}],
                 },
             })
-            _wait_reconcile()
-            
+            _wait_for_maas_auth_policy_phase("e2e-premium-sa-auth", require_enforced=False)
+            _wait_for_maas_subscription_phase("e2e-premium-sa-sub")
+
             # Key must be minted for the premium subscription
             api_key = _create_api_key(
                 _get_cluster_token(),
@@ -743,8 +752,9 @@ class TestMultipleAuthPoliciesPerModel:
         finally:
             _delete_cr("maassubscription", "e2e-premium-sa-sub")
             _delete_cr("maasauthpolicy", "e2e-premium-sa-auth")
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", "e2e-premium-sa-sub")
 
+    @pytest.mark.serial
     def test_delete_one_auth_policy_other_still_works(self):
         """Delete one of two auth policies for a model -> remaining still works."""
         ns = _ns()
@@ -759,11 +769,11 @@ class TestMultipleAuthPoliciesPerModel:
                     "subjects": {"groups": [{"name": "system:authenticated"}]},
                 },
             })
-            _wait_reconcile()
+            _wait_for_maas_auth_policy_phase("e2e-extra-auth", require_enforced=False)
 
             # Delete the extra policy - original policy should still work
             _delete_cr("maasauthpolicy", "e2e-extra-auth")
-            _wait_reconcile()
+            _wait_for_cr_absent("maasauthpolicy", "e2e-extra-auth")
 
             # Default API key should still work via the original auth policy
             api_key = _get_default_api_key()
@@ -771,12 +781,13 @@ class TestMultipleAuthPoliciesPerModel:
             log.info(f"After deleting extra auth policy -> {r.status_code}")
         finally:
             _delete_cr("maasauthpolicy", "e2e-extra-auth")
-            _wait_reconcile()
+            _wait_for_cr_absent("maasauthpolicy", "e2e-extra-auth")
 
 
 class TestCascadeDeletion:
     """Tests that deleting CRs triggers proper cleanup and rebuilds."""
 
+    @pytest.mark.serial
     def test_delete_subscription_rebuilds_trlp(self):
         """Add a 2nd subscription, delete it -> TRLP rebuilt with only the original."""
         ns = _ns()
@@ -790,7 +801,7 @@ class TestCascadeDeletion:
                     "modelRefs": [{"name": MODEL_REF, "namespace": MODEL_NAMESPACE, "tokenRateLimits": [{"limit": 50, "window": "1m"}]}],
                 },
             })
-            _wait_reconcile()
+            _wait_for_maas_subscription_phase("e2e-temp-sub")
 
             _delete_cr("maassubscription", "e2e-temp-sub")
 
@@ -799,6 +810,7 @@ class TestCascadeDeletion:
         finally:
             _delete_cr("maassubscription", "e2e-temp-sub")
 
+    @pytest.mark.serial
     def test_trlp_persists_during_multi_subscription_deletion(self):
         """Validate CWE-693/CWE-400 fix: TRLP rebuilt in-place during deletion.
 
@@ -838,7 +850,7 @@ class TestCascadeDeletion:
                     }],
                 },
             })
-            _wait_reconcile()
+            _wait_for_maas_subscription_phase("e2e-second-sub")
 
             # Step 2: Verify TRLP exists and contains both subscriptions
             log.info("Verifying TRLP contains both subscriptions...")
@@ -864,7 +876,7 @@ class TestCascadeDeletion:
             # Step 3: Delete the second subscription
             log.info("Deleting second subscription...")
             _delete_cr("maassubscription", "e2e-second-sub", ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", "e2e-second-sub")
 
             # Step 4: Verify TRLP still exists (not deleted) and contains only original subscription
             log.info("Verifying TRLP persists and contains only original subscription...")
@@ -902,7 +914,7 @@ class TestCascadeDeletion:
             # Step 6: Delete the last remaining subscription
             log.info("Deleting last subscription...")
             _delete_cr("maassubscription", SIMULATOR_SUBSCRIPTION, ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", SIMULATOR_SUBSCRIPTION)
 
             # Step 7: Verify TRLP is now deleted (no subscriptions remain)
             log.info("Verifying TRLP is deleted when no subscriptions remain...")
@@ -918,8 +930,9 @@ class TestCascadeDeletion:
             _delete_cr("maassubscription", "e2e-second-sub", ns)
             if original_sub:
                 _apply_cr(original_sub)
-            _wait_reconcile()
+                _wait_for_maas_subscription_phase(SIMULATOR_SUBSCRIPTION)
 
+    @pytest.mark.serial
     def test_delete_last_subscription_denies_access(self):
         """Delete all subscriptions for a model -> access denied with 403 Forbidden.
 
@@ -937,7 +950,7 @@ class TestCascadeDeletion:
             log.info(f"No subscriptions -> {r.status_code} (access denied as expected)")
         finally:
             _apply_cr(original)
-            _wait_reconcile()
+            _wait_for_maas_subscription_phase(SIMULATOR_SUBSCRIPTION)
             # Wait for the TRLP to be re-enforced before returning — this confirms the
             # controller has fully reconciled the restored subscription and the maas-api
             # subscription cache has caught up, preventing flaky failures in subsequent tests.
@@ -993,7 +1006,7 @@ class TestOrderingEdgeCases:
             # Ensure clean slate to avoid stale CR/status from interrupted prior runs.
             _delete_cr("maassubscription", "e2e-ordering-sub", namespace=ns)
             _delete_cr("maasauthpolicy", "e2e-ordering-auth", namespace=ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", "e2e-ordering-sub")
 
             # Subscription CR must exist before minting a key bound to it.
             # Use common helper to keep schema/owner defaults consistent with passing flows.
@@ -1037,7 +1050,7 @@ class TestOrderingEdgeCases:
             _delete_cr("maassubscription", "e2e-ordering-sub")
             _delete_cr("maasauthpolicy", "e2e-ordering-auth")
             _delete_sa(sa_name, namespace=ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", "e2e-ordering-sub")
 
 
 class TestManagedAnnotation:
@@ -1092,7 +1105,7 @@ class TestManagedAnnotation:
             )
 
             # 6. Wait for reconciliation
-            _wait_reconcile()
+            _wait_for_maas_auth_policy_phase(SIMULATOR_ACCESS_POLICY, require_enforced=False)
 
             # 7. Re-read the AuthPolicy and compare spec
             ap_after = _get_cr("authpolicy", AUTH_POLICY_NAME, ap_ns)
@@ -1135,8 +1148,7 @@ class TestManagedAnnotation:
                     "Restored parent MaaSAuthPolicy %s from snapshot",
                     SIMULATOR_ACCESS_POLICY,
                 )
-
-            _wait_reconcile()
+                _wait_for_maas_auth_policy_phase(SIMULATOR_ACCESS_POLICY, require_enforced=False)
 
     def test_trlp_managed_false_prevents_update(self):
         """TokenRateLimitPolicy annotated with opendatahub.io/managed=false must not
@@ -1196,7 +1208,7 @@ class TestManagedAnnotation:
             )
 
             # 6. Wait for reconciliation
-            _wait_reconcile()
+            _wait_for_maas_subscription_phase(SIMULATOR_SUBSCRIPTION)
 
             # 7. Re-read the TRLP and compare spec
             trlp_after = _get_cr("tokenratelimitpolicy", TRLP_NAME, trlp_ns)
@@ -1239,8 +1251,7 @@ class TestManagedAnnotation:
                     "Restored parent MaaSSubscription %s from snapshot",
                     SIMULATOR_SUBSCRIPTION,
                 )
-
-            _wait_reconcile()
+                _wait_for_maas_subscription_phase(SIMULATOR_SUBSCRIPTION)
 
 
 class TestE2ESubscriptionFlow:
@@ -1350,8 +1361,9 @@ class TestE2ESubscriptionFlow:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_policy_name, namespace=ns)
             _delete_sa(sa_name, namespace=ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
+    @pytest.mark.serial
     def test_e2e_with_access_but_no_subscription_gets_403(self):
         """
         Test: User with access (MaaSAuthPolicy) but not in any subscription gets 403.
@@ -1383,7 +1395,7 @@ class TestE2ESubscriptionFlow:
             )
 
             _delete_cr("maassubscription", SIMULATOR_SUBSCRIPTION)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", SIMULATOR_SUBSCRIPTION)
 
             log.info("Testing: API key after subscription removed (auth still passes)")
             r = _poll_status(api_key, 403, path=MODEL_PATH, timeout=90)
@@ -1395,7 +1407,8 @@ class TestE2ESubscriptionFlow:
                 _apply_cr(original_sim)
             _delete_cr("maasauthpolicy", auth_policy_name, namespace=ns)
             _delete_sa(sa_name, namespace=ns)
-            _wait_reconcile()
+            if original_sim:
+                _wait_for_maas_subscription_phase(SIMULATOR_SUBSCRIPTION)
 
     def test_e2e_with_subscription_but_no_access_gets_403(self):
         """
@@ -1442,8 +1455,9 @@ class TestE2ESubscriptionFlow:
             _delete_cr("maasauthpolicy", auth_policy_name, namespace=ns)
             _delete_sa(sa_with_auth, namespace=ns)
             _delete_sa(sa_with_sub, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
+    @pytest.mark.serial
     def test_e2e_single_subscription_auto_selects(self):
         """
         Test: User with single subscription auto-selects without header (PR #427).
@@ -1471,7 +1485,8 @@ class TestE2ESubscriptionFlow:
             # Create auth policy and subscription for test user
             _create_test_auth_policy(auth_policy_name, MODEL_REF, users=[sa_user])
             _create_test_subscription(subscription_name, MODEL_REF, users=[sa_user])
-            _wait_reconcile()
+            _wait_for_maas_auth_policy_phase(auth_policy_name, require_enforced=False)
+            _wait_for_maas_subscription_phase(subscription_name)
 
             # Exactly one subscription for this user → mint can auto-bind it without explicit name
             api_key = _create_api_key(oc_token, name=f"{sa_name}-key")
@@ -1487,7 +1502,7 @@ class TestE2ESubscriptionFlow:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_policy_name, namespace=ns)
             _delete_sa(sa_name, namespace=ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
     def test_e2e_multiple_subscriptions_separate_keys_gets_200(self):
         """
@@ -1510,7 +1525,9 @@ class TestE2ESubscriptionFlow:
             _create_test_subscription(subscription_1, MODEL_REF, users=[sa_user], token_limit=100)
             _create_test_subscription(subscription_2, MODEL_REF, users=[sa_user], token_limit=1000)
 
-            _wait_reconcile()
+            _wait_for_maas_auth_policy_phase(auth_policy_name, require_enforced=False)
+            _wait_for_maas_subscription_phase(subscription_1)
+            _wait_for_maas_subscription_phase(subscription_2)
 
             key1 = _create_api_key(
                 oc_token,
@@ -1536,7 +1553,7 @@ class TestE2ESubscriptionFlow:
             _delete_cr("maassubscription", subscription_2, namespace=ns)
             _delete_cr("maasauthpolicy", auth_policy_name, namespace=ns)
             _delete_sa(sa_name, namespace=ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_1)
 
     def test_e2e_mint_api_key_denied_for_inaccessible_subscription(self):
         """POST /v1/api-keys with another user's subscription returns generic invalid_subscription."""
@@ -1562,7 +1579,9 @@ class TestE2ESubscriptionFlow:
             _create_test_subscription(user_subscription, MODEL_REF, users=[user_principal])
             _create_test_subscription(other_subscription, MODEL_REF, users=[other_principal])
 
-            _wait_reconcile()
+            _wait_for_maas_auth_policy_phase(auth_policy_name, require_enforced=False)
+            _wait_for_maas_subscription_phase(user_subscription)
+            _wait_for_maas_subscription_phase(other_subscription)
 
             # Retry on empty 403 from gateway propagation delay (Envoy may not
             # have loaded the AuthPolicy yet).
@@ -1596,7 +1615,7 @@ class TestE2ESubscriptionFlow:
             _delete_cr("maasauthpolicy", auth_policy_name, namespace=ns)
             _delete_sa(sa_user, namespace=ns)
             _delete_sa(sa_other, namespace=ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", user_subscription)
 
     def test_e2e_group_based_access_gets_200(self):
         """
@@ -1623,7 +1642,8 @@ class TestE2ESubscriptionFlow:
             # Create subscription using GROUP (not user)
             _create_test_subscription(subscription_name, MODEL_REF, groups=[test_group])
 
-            _wait_reconcile()
+            _wait_for_maas_auth_policy_phase(auth_policy_name, require_enforced=False)
+            _wait_for_maas_subscription_phase(subscription_name)
 
             api_key = _create_api_key(
                 oc_token,
@@ -1640,8 +1660,9 @@ class TestE2ESubscriptionFlow:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_policy_name, namespace=ns)
             _delete_sa(sa_name, namespace=ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
+    @pytest.mark.serial
     def test_e2e_group_based_auth_but_no_subscription_gets_403(self):
         """
         E2E test: Group-based auth, but user's group not in any subscription (failure case).
@@ -1673,7 +1694,7 @@ class TestE2ESubscriptionFlow:
             )
 
             _delete_cr("maassubscription", SIMULATOR_SUBSCRIPTION)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", SIMULATOR_SUBSCRIPTION)
 
             log.info("Testing: Group-based auth; key bound to removed subscription")
             r = _poll_status(api_key, 403, path=MODEL_PATH, timeout=90)
@@ -1685,7 +1706,8 @@ class TestE2ESubscriptionFlow:
                 _apply_cr(original_sim)
             _delete_cr("maasauthpolicy", auth_policy_name, namespace=ns)
             _delete_sa(sa_name, namespace=ns)
-            _wait_reconcile()
+            if original_sim:
+                _wait_for_maas_subscription_phase(SIMULATOR_SUBSCRIPTION)
 
     def test_e2e_group_based_subscription_but_no_auth_gets_403(self):
         """
@@ -1727,7 +1749,7 @@ class TestE2ESubscriptionFlow:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_policy_name, namespace=ns)
             _delete_sa(sa_name, namespace=ns)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
 
 class TestStatusReporting:
@@ -1783,7 +1805,7 @@ class TestStatusReporting:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
     def test_subscription_failed_status_with_missing_model(self):
         """
@@ -1823,7 +1845,7 @@ class TestStatusReporting:
         finally:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
     def test_authpolicy_active_status_with_valid_model(self):
         """
@@ -1859,7 +1881,7 @@ class TestStatusReporting:
         finally:
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maasauthpolicy", auth_name)
 
     def test_authpolicy_failed_status_with_missing_model(self):
         """
@@ -1892,7 +1914,7 @@ class TestStatusReporting:
         finally:
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maasauthpolicy", auth_name)
 
     def test_subscription_degraded_status_with_partial_models(self):
         """
@@ -1941,8 +1963,9 @@ class TestStatusReporting:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
+    @pytest.mark.serial
     def test_subscription_degraded_trlp_blocks_inference(self):
         """
         Test: Degraded subscription with TRLP not ready blocks inference.
@@ -2067,7 +2090,7 @@ class TestStatusReporting:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
     def test_authpolicy_degraded_status_with_partial_models(self):
         """
@@ -2107,7 +2130,7 @@ class TestStatusReporting:
         finally:
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maasauthpolicy", auth_name)
 
     def test_subscription_status_transitions_on_model_deletion(self):
         """
@@ -2184,7 +2207,7 @@ class TestStatusReporting:
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_cr("maasmodelref", model_name, namespace=MODEL_NAMESPACE)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
 class TestDegradedSubscriptionFiltering:
     """
@@ -2232,10 +2255,9 @@ class TestDegradedSubscriptionFiltering:
                 users=[sa_user]
             )
 
-            _wait_reconcile(seconds=10)
+            cr = _wait_for_maas_subscription_phase(subscription_name, "Degraded", timeout=60)
 
             # Verify Degraded with mixed health
-            cr = _get_cr("maassubscription", subscription_name, namespace=ns)
             status = cr.get("status", {})
             phase = status.get("phase")
             model_statuses = status.get("modelRefStatuses", [])
@@ -2277,7 +2299,7 @@ class TestDegradedSubscriptionFiltering:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
     def test_failed_subscription_blocks_inference(self):
         """
@@ -2307,10 +2329,9 @@ class TestDegradedSubscriptionFiltering:
             # Create subscription with valid model (will be Active)
             _create_test_subscription(subscription_name, MODEL_REF, users=[sa_user])
 
-            _wait_reconcile(seconds=10)
+            cr = _wait_for_maas_subscription_phase(subscription_name, "Active", timeout=60)
 
             # Verify it starts as Active
-            cr = _get_cr("maassubscription", subscription_name, namespace=ns)
             phase = cr.get("status", {}).get("phase")
             log.info(f"Initial phase: {phase}")
             assert phase == "Active", f"Expected Active initially, got {phase}"
@@ -2392,7 +2413,7 @@ class TestDegradedSubscriptionFiltering:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
     def test_models_endpoint_with_degraded_subscription_api_key(self):
         """
@@ -2422,10 +2443,9 @@ class TestDegradedSubscriptionFiltering:
                 users=[sa_user]
             )
 
-            _wait_reconcile(seconds=10)
+            cr = _wait_for_maas_subscription_phase(subscription_name, "Degraded", timeout=60)
 
             # Verify Degraded
-            cr = _get_cr("maassubscription", subscription_name, namespace=ns)
             phase = cr.get("status", {}).get("phase")
             assert phase == "Degraded", f"Expected Degraded, got {phase}"
 
@@ -2465,7 +2485,7 @@ class TestDegradedSubscriptionFiltering:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
 
     def test_models_endpoint_with_degraded_subscription_kube_token(self):
         """
@@ -2494,10 +2514,9 @@ class TestDegradedSubscriptionFiltering:
                 users=[sa_user]
             )
 
-            _wait_reconcile(seconds=10)
+            cr = _wait_for_maas_subscription_phase(subscription_name, "Degraded", timeout=60)
 
             # Verify Degraded
-            cr = _get_cr("maassubscription", subscription_name, namespace=ns)
             phase = cr.get("status", {}).get("phase")
             assert phase == "Degraded", f"Expected Degraded, got {phase}"
 
@@ -2527,4 +2546,4 @@ class TestDegradedSubscriptionFiltering:
             _delete_cr("maassubscription", subscription_name, namespace=ns)
             _delete_cr("maasauthpolicy", auth_name, namespace=ns)
             _delete_sa(sa_name, namespace=MODEL_NAMESPACE)
-            _wait_reconcile()
+            _wait_for_cr_absent("maassubscription", subscription_name)
