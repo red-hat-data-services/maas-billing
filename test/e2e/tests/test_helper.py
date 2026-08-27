@@ -19,7 +19,7 @@ Environment variables (all optional unless noted):
   - GATEWAY_NAMESPACE: Gateway namespace (default: openshift-ingress)
   - E2E_TEST_TOKEN_SA_NAMESPACE, E2E_TEST_TOKEN_SA_NAME: SA token source for Prow
   - E2E_TIMEOUT: Request timeout in seconds (default: 45)
-  - E2E_RECONCILE_WAIT: Wait time for reconciliation in seconds (default: 8)
+  - E2E_RECONCILE_WAIT: Baseline for poll timeouts in seconds (default: 8)
   - E2E_SKIP_TLS_VERIFY: Set to "true" to skip TLS verification
   - E2E_MODEL_PATH: Path to free model (default: /llm/facebook-opt-125m-simulated)
   - E2E_MODEL_NAME: Model name for API requests (default: facebook/opt-125m)
@@ -87,6 +87,9 @@ GATEWAY_ENFORCED_TIMEOUT = int(os.environ.get("E2E_GATEWAY_ENFORCED_TIMEOUT", "1
 # If the AuthPolicy CR is missing this long, fail fast (misconfigured name/namespace)
 # instead of burning the full GATEWAY_ENFORCED_TIMEOUT.
 GATEWAY_ENFORCED_MISSING_GRACE = int(os.environ.get("E2E_GATEWAY_ENFORCED_MISSING_GRACE", "30"))
+# Controller reconcile under pytest-xdist load needs longer phase waits (see prow_run_smoke_test.sh).
+AUTHPOLICY_PHASE_TIMEOUT = int(os.environ.get("E2E_AUTHPOLICY_PHASE_TIMEOUT", "60"))
+MAAS_SUBSCRIPTION_PHASE_TIMEOUT = int(os.environ.get("E2E_MAAS_SUBSCRIPTION_PHASE_TIMEOUT", "60"))
 
 
 def _derive_infra_namespace(controller_namespace: str) -> str:
@@ -798,10 +801,6 @@ def _check_ipp_pods_deployed(tenant_name: Optional[str] = None):
 # Wait / Polling Helpers
 # ---------------------------------------------------------------------------
 
-def _wait_reconcile(seconds=None):
-    time.sleep(seconds or RECONCILE_WAIT)
-
-
 def _authpolicy_conditions(cr, *types):
     """Return {type: (status, reason, message)} for requested condition types (single pass)."""
     wanted = set(types)
@@ -964,7 +963,7 @@ def _wait_for_token_rate_limit_policy(model_ref, model_namespace=MODEL_NAMESPACE
     )
 
 
-def _wait_for_maas_subscription_phase(name, expected_phase="Active", namespace=None, timeout=60, require_model_statuses=False):
+def _wait_for_maas_subscription_phase(name, expected_phase="Active", namespace=None, timeout=MAAS_SUBSCRIPTION_PHASE_TIMEOUT, require_model_statuses=False):
     """Wait for MaaSSubscription to reach a specific phase.
 
     Args:
@@ -1064,7 +1063,7 @@ def _wait_for_subscription_trlp_status(name, expected_ready=True, namespace=None
     )
 
 
-def _wait_for_maas_auth_policy_phase(name, expected_phase="Active", namespace=None, timeout=60,
+def _wait_for_maas_auth_policy_phase(name, expected_phase="Active", namespace=None, timeout=AUTHPOLICY_PHASE_TIMEOUT,
                                 require_auth_policies=False, require_enforced=True):
     """Wait for MaaSAuthPolicy to reach a specific phase.
 
@@ -1224,6 +1223,19 @@ def _wait_for_httproute_accepted(name, namespace=MODEL_NAMESPACE, timeout=60):
     raise TimeoutError(
         f"HTTPRoute {namespace}/{name} did not report Accepted=True within {timeout}s "
         f"(parents={parents!r})"
+    )
+
+
+def _wait_for_cr_absent(kind, name, namespace=None, timeout=30, poll_interval=2):
+    """Wait until a CR is deleted (no longer found by the API server)."""
+    namespace = namespace or _ns()
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if _get_cr(kind, name, namespace) is None:
+            return
+        time.sleep(poll_interval)
+    raise TimeoutError(
+        f"{kind}/{name} in {namespace} still exists after {timeout}s"
     )
 
 
