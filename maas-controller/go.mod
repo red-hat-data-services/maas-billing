@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/models-as-a-service/maas-controller
 
-go 1.25.1
+go 1.25.13
 
 require (
 	github.com/go-logr/logr v1.4.3
