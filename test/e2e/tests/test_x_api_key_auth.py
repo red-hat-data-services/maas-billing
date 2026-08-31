@@ -36,7 +36,6 @@ from test_helper import (
     _gateway_url,
     _inference,
     _poll_status,
-    _wait_reconcile,
 )
 
 log = logging.getLogger(__name__)
@@ -141,10 +140,13 @@ def _inference_x_api_key(api_key, path=None, model_name=None):
     )
 
 
-pytestmark = pytest.mark.skipif(
-    not _crd_installed(IPP_EXTERNAL_MODEL_CRD),
-    reason=f"IPP ExternalModel CRD ({IPP_EXTERNAL_MODEL_CRD}) not installed",
-)
+pytestmark = [
+    pytest.mark.skipif(
+        not _crd_installed(IPP_EXTERNAL_MODEL_CRD),
+        reason=f"IPP ExternalModel CRD ({IPP_EXTERNAL_MODEL_CRD}) not installed",
+    ),
+    pytest.mark.xdist_group("api_keys"),
+]
 
 
 @pytest.fixture(scope="module")
@@ -164,7 +166,6 @@ def x_api_key_setup(api_key):
     log.info("Setting up x-api-key auth test fixture...")
 
     _apply_cr(IPP_EXTERNAL_MODEL_CR)
-    _wait_reconcile()
     _trigger_reconcile()
 
     try:
@@ -180,7 +181,6 @@ def x_api_key_setup(api_key):
 
     log.info("Cleaning up x-api-key auth test fixture...")
     _delete_cr("externalmodel.inference.opendatahub.io", IPP_EXTERNAL_MODEL_NAME, MODEL_NAMESPACE)
-    _wait_reconcile()
     _trigger_reconcile()
 
     try:
