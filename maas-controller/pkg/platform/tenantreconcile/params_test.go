@@ -1025,7 +1025,7 @@ func TestBuildPlatformParams_ResourceOverrides(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		assert.Nil(t, got.PayloadProcessingResources)
 	})
@@ -1042,7 +1042,7 @@ func TestBuildPlatformParams_ResourceOverrides(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		assert.Nil(t, got.PayloadProcessingResources)
 	})
@@ -1067,7 +1067,7 @@ func TestBuildPlatformParams_ResourceOverrides(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		require.NotNil(t, got.PayloadProcessingResources)
 		assert.Equal(t, resource.MustParse("2Gi"), got.PayloadProcessingResources.Limits[corev1.ResourceMemory])
@@ -1089,7 +1089,7 @@ func TestBuildPlatformParams_ResourceOverrides(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		require.NotNil(t, got.PayloadProcessingResources)
 		assert.Equal(t, resource.MustParse("1Gi"), got.PayloadProcessingResources.Limits[corev1.ResourceMemory])
@@ -1115,7 +1115,7 @@ func TestBuildPlatformParams_ResourceOverrides(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		assert.True(t, got.PayloadProcessingAutoscaling)
 		require.NotNil(t, got.PayloadProcessingResources)
@@ -1139,7 +1139,7 @@ func TestBuildPlatformParams_ResourceOverrides(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		assert.True(t, got.PayloadProcessingAutoscaling)
 		assert.Nil(t, got.PayloadProcessingResources)
@@ -1163,7 +1163,7 @@ func TestBuildPlatformParams_ResourceOverrides(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		assert.Nil(t, got.PayloadProcessingResources)
 		require.Len(t, got.Warnings, 1)
@@ -1364,7 +1364,7 @@ func TestBuildPlatformParams_MaasAPIConfig(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		assert.Nil(t, got.MaaSAPIResources)
 	})
@@ -1389,7 +1389,7 @@ func TestBuildPlatformParams_MaasAPIConfig(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		require.NotNil(t, got.MaaSAPIResources)
 		assert.Equal(t, resource.MustParse("1Gi"), got.MaaSAPIResources.Limits[corev1.ResourceMemory])
@@ -1411,7 +1411,7 @@ func TestBuildPlatformParams_MaasAPIConfig(t *testing.T) {
 			AnnotationMaaSAPIReplicas: "3",
 		})
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		require.NotNil(t, got.MaaSAPIReplicas)
 		assert.Equal(t, int32(4), *got.MaaSAPIReplicas)
@@ -1429,7 +1429,7 @@ func TestBuildPlatformParams_MaasAPIConfig(t *testing.T) {
 			AnnotationMaaSAPIReplicas: "3",
 		})
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		require.NotNil(t, got.MaaSAPIReplicas)
 		assert.Equal(t, int32(3), *got.MaaSAPIReplicas)
@@ -1440,7 +1440,7 @@ func TestBuildPlatformParams_MaasAPIConfig(t *testing.T) {
 		tenant.SetNamespace("models-as-a-service")
 		tenant.SetName("default-tenant")
 
-		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", "opendatahub", logr.Discard())
+		got, err := BuildPlatformParams(tenant, platformContext, "opendatahub", "opendatahub", "https://kubernetes.default.svc", logr.Discard())
 		require.NoError(t, err)
 		assert.Nil(t, got.MaaSAPIReplicas)
 	})
