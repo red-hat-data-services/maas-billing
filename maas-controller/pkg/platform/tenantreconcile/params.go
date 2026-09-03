@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -36,8 +37,25 @@ type PlatformParams struct {
 
 	// MaaSAPIReplicas overrides the maas-api Deployment replica count when non-nil.
 	MaaSAPIReplicas *int32
+	// MaaSAPIResources overrides resource requests/limits for the maas-api container.
+	// Full replacement: when set, the entire resources block is replaced (not merged with base manifest).
+	MaaSAPIResources *corev1.ResourceRequirements
 	// PayloadProcessingReplicas overrides the payload-processing Deployment replica count when non-nil.
+	// When PayloadProcessingAutoscaling is true, this value becomes the HPA minReplicas instead.
 	PayloadProcessingReplicas *int32
+
+	// PayloadProcessingAutoscaling enables HPA for payload-processing pods when true.
+	PayloadProcessingAutoscaling bool
+	// PayloadProcessingMaxReplicas is the HPA maxReplicas (default 10, only used when autoscaling is true).
+	PayloadProcessingMaxReplicas int32
+	// PayloadProcessingTargetCPU is the HPA target CPU utilization percentage (default 70).
+	PayloadProcessingTargetCPU int32
+	// PayloadProcessingTargetMemory is the HPA target memory utilization percentage (default 80).
+	PayloadProcessingTargetMemory int32
+
+	// PayloadProcessingResources overrides resource requests/limits for the payload-processing container.
+	// Full replacement: when set, the entire resources block is replaced (not merged with base manifest).
+	PayloadProcessingResources *corev1.ResourceRequirements
 
 	// Warnings collects non-fatal issues found during param resolution (e.g. invalid annotations).
 	Warnings []string
@@ -67,6 +85,43 @@ func BuildPlatformParams(tenant client.Object, platformContext PlatformContext, 
 	}
 
 	params.MaaSAPIReplicas, params.PayloadProcessingReplicas, params.Warnings = resolveReplicaAnnotations(tenant, log)
+
+	maasAPIReplicas, maasAPIResources := resolveMaasAPIConfig(tenant, log)
+	params.MaaSAPIResources = maasAPIResources
+	if maasAPIReplicas != nil {
+		params.MaaSAPIReplicas = maasAPIReplicas
+	}
+
+	var ppReplicas *int32
+	var resourceWarnings []string
+	params.PayloadProcessingAutoscaling,
+		ppReplicas,
+		params.PayloadProcessingMaxReplicas,
+		params.PayloadProcessingTargetCPU,
+		params.PayloadProcessingTargetMemory,
+		params.PayloadProcessingResources,
+		resourceWarnings = resolvePayloadProcessingConfig(tenant, log)
+	params.Warnings = append(params.Warnings, resourceWarnings...)
+
+	// Spec-based replicas take precedence over annotation-based replicas for payload-processing.
+	if ppReplicas != nil {
+		params.PayloadProcessingReplicas = ppReplicas
+	}
+
+	// Validate minReplicas <= maxReplicas when autoscaling is enabled.
+	// An invalid combination (e.g. replicas=20, max-replicas=10) would produce an HPA
+	// that the Kubernetes API rejects, blocking tenant reconciliation.
+	if params.PayloadProcessingAutoscaling && params.PayloadProcessingReplicas != nil {
+		if *params.PayloadProcessingReplicas > params.PayloadProcessingMaxReplicas {
+			params.Warnings = append(params.Warnings, fmt.Sprintf(
+				"spec.payloadProcessing.replicas (%d) exceeds spec.payloadProcessing.autoscaling.maxReplicas (%d); clamping maxReplicas to match",
+				*params.PayloadProcessingReplicas, params.PayloadProcessingMaxReplicas))
+			params.PayloadProcessingMaxReplicas = *params.PayloadProcessingReplicas
+			log.Info("Clamped spec.payloadProcessing.autoscaling.maxReplicas to match replicas",
+				"minReplicas", *params.PayloadProcessingReplicas,
+				"maxReplicas", params.PayloadProcessingMaxReplicas)
+		}
+	}
 
 	log.Info("Built platform params",
 		"tenant", tenant.GetNamespace()+"/"+tenant.GetName(),
@@ -120,6 +175,12 @@ func resolveReplicaAnnotations(tenant client.Object, log logr.Logger) (maasAPIRe
 
 const maxReplicaCount = 100
 
+const (
+	defaultMaxReplicas  int32 = 10
+	defaultTargetCPU    int32 = 70
+	defaultTargetMemory int32 = 80
+)
+
 func parseReplicaAnnotation(annotationKey, value string) (*int32, string) {
 	n, err := strconv.ParseInt(value, 10, 32)
 	if err != nil {
@@ -133,6 +194,138 @@ func parseReplicaAnnotation(annotationKey, value string) (*int32, string) {
 	}
 	r := int32(n)
 	return &r, ""
+}
+
+// resolvePayloadProcessingConfig reads autoscaling and resource configuration from the
+// tenant spec and returns resolved values with defaults applied.
+func resolvePayloadProcessingConfig(tenant client.Object, log logr.Logger) (
+	enabled bool,
+	replicas *int32,
+	maxReplicas, targetCPU, targetMemory int32,
+	resources *corev1.ResourceRequirements,
+	warnings []string,
+) {
+	maxReplicas = defaultMaxReplicas
+	targetCPU = defaultTargetCPU
+	targetMemory = defaultTargetMemory
+
+	cfg := payloadProcessingConfigFor(tenant)
+	if cfg == nil {
+		return false, nil, maxReplicas, targetCPU, targetMemory, nil, nil
+	}
+
+	replicas = cfg.Replicas
+	resourceWarnings, resources := validatePayloadProcessingResources(cfg)
+	if len(resourceWarnings) > 0 {
+		warnings = append(warnings, resourceWarnings...)
+	}
+
+	if resources != nil {
+		log.Info("Payload-processing resource overrides configured")
+	}
+
+	if cfg.Autoscaling == nil {
+		return false, replicas, maxReplicas, targetCPU, targetMemory, resources, warnings
+	}
+
+	enabled = true
+	log.Info("Payload-processing autoscaling enabled")
+
+	if cfg.Autoscaling.MaxReplicas != nil {
+		maxReplicas = *cfg.Autoscaling.MaxReplicas
+	}
+	if cfg.Autoscaling.TargetCPUUtilization != nil {
+		targetCPU = *cfg.Autoscaling.TargetCPUUtilization
+	}
+	if cfg.Autoscaling.TargetMemoryUtilization != nil {
+		targetMemory = *cfg.Autoscaling.TargetMemoryUtilization
+	}
+
+	return enabled, replicas, maxReplicas, targetCPU, targetMemory, resources, warnings
+}
+
+func validatePayloadProcessingResources(cfg *maasv1alpha1.TenantPayloadProcessingConfig) (warnings []string, resources *corev1.ResourceRequirements) {
+	if cfg.Resources == nil {
+		return nil, nil
+	}
+
+	resources = tenantResourcesToCorev1(cfg.Resources)
+	if resources == nil {
+		return nil, nil
+	}
+
+	if cfg.Autoscaling != nil {
+		if resources.Requests == nil {
+			return []string{
+				"spec.payloadProcessing.resources.requests is required when autoscaling is enabled; " +
+					"specify both cpu and memory requests or remove spec.payloadProcessing.resources to use manifest defaults",
+			}, nil
+		}
+		if _, ok := resources.Requests[corev1.ResourceCPU]; !ok {
+			return []string{
+				"spec.payloadProcessing.resources.requests.cpu is required when autoscaling is enabled",
+			}, nil
+		}
+		if _, ok := resources.Requests[corev1.ResourceMemory]; !ok {
+			return []string{
+				"spec.payloadProcessing.resources.requests.memory is required when autoscaling is enabled",
+			}, nil
+		}
+	}
+
+	return nil, resources
+}
+
+func resolveMaasAPIConfig(tenant client.Object, log logr.Logger) (replicas *int32, resources *corev1.ResourceRequirements) {
+	cfg := maasAPIConfigFor(tenant)
+	if cfg == nil {
+		return nil, nil
+	}
+
+	if cfg.Replicas != nil {
+		replicas = cfg.Replicas
+		log.Info("Resolved maas-api replicas from spec", "replicas", *replicas)
+	}
+	if cfg.Resources != nil {
+		resources = tenantResourcesToCorev1(cfg.Resources)
+		if resources != nil {
+			log.Info("maas-api resource overrides configured")
+		}
+	}
+
+	return replicas, resources
+}
+
+func maasAPIConfigFor(tenant client.Object) *maasv1alpha1.TenantMaasAPIConfig {
+	switch t := tenant.(type) {
+	case *maasv1alpha1.MaasTenantConfig:
+		return t.Spec.MaasAPI
+	case *maasv1alpha1.Tenant:
+		return t.Spec.MaasAPI
+	default:
+		return nil
+	}
+}
+
+func tenantResourcesToCorev1(in *maasv1alpha1.TenantResourceRequirements) *corev1.ResourceRequirements {
+	if in == nil {
+		return nil
+	}
+	return &corev1.ResourceRequirements{
+		Requests: in.Requests,
+		Limits:   in.Limits,
+	}
+}
+
+func payloadProcessingConfigFor(tenant client.Object) *maasv1alpha1.TenantPayloadProcessingConfig {
+	switch t := tenant.(type) {
+	case *maasv1alpha1.MaasTenantConfig:
+		return t.Spec.PayloadProcessing
+	case *maasv1alpha1.Tenant:
+		return t.Spec.PayloadProcessing
+	default:
+		return nil
+	}
 }
 
 func resolveAPIKeyMaxExpirationDays(tenant client.Object) string {
@@ -330,6 +523,12 @@ func patchMaaSAPIDeployment(log logr.Logger, r *unstructured.Unstructured, param
 	if err := setOrAddEnvVar(r, "maas-api", "API_KEY_MAX_EXPIRATION_DAYS", params.APIKeyMaxExpirationDays); err != nil {
 		return fmt.Errorf("patch API_KEY_MAX_EXPIRATION_DAYS: %w", err)
 	}
+	if params.MaaSAPIResources != nil {
+		if err := setContainerResources(r, "maas-api", params.MaaSAPIResources); err != nil {
+			return fmt.Errorf("patch maas-api resources: %w", err)
+		}
+		log.V(4).Info("Patching maas-api resources")
+	}
 
 	// Set TENANT_NAME environment variable for per-tenant maas-api instances.
 	// This value is used by maas-api for database queries (WHERE tenant = $TENANT_NAME)
@@ -372,7 +571,13 @@ func patchPayloadProcessingDeployment(log logr.Logger, r *unstructured.Unstructu
 	r.SetNamespace(params.GatewayNamespace)
 	deploymentName := PayloadProcessingDeploymentName(params.TenantIdentifier)
 
-	if params.PayloadProcessingReplicas != nil {
+	// When autoscaling is enabled, remove spec.replicas so the HPA has sole ownership.
+	// SSA would otherwise reset the HPA-selected count on every reconciliation.
+	// When autoscaling is disabled, apply the annotation override normally.
+	if params.PayloadProcessingAutoscaling {
+		unstructured.RemoveNestedField(r.Object, "spec", "replicas")
+		log.V(4).Info("Removed spec.replicas from payload-processing (HPA manages replicas)", "deployment", deploymentName)
+	} else if params.PayloadProcessingReplicas != nil {
 		if err := unstructured.SetNestedField(r.Object, int64(*params.PayloadProcessingReplicas), "spec", "replicas"); err != nil {
 			return fmt.Errorf("patch payload-processing replicas: %w", err)
 		}
@@ -408,6 +613,12 @@ func patchPayloadProcessingDeployment(log logr.Logger, r *unstructured.Unstructu
 	}
 	if err := patchConfigMapVolumeRef(r, "plugins-config-volume", PayloadProcessingPluginsConfigMapForTenant(params.TenantIdentifier)); err != nil {
 		return fmt.Errorf("patch plugins ConfigMap volume: %w", err)
+	}
+	if params.PayloadProcessingResources != nil {
+		if err := setContainerResources(r, "payload-processing", params.PayloadProcessingResources); err != nil {
+			return fmt.Errorf("patch payload-processing resources: %w", err)
+		}
+		log.V(4).Info("Patched payload-processing resources", "deployment", deploymentName)
 	}
 	return nil
 }
@@ -781,6 +992,41 @@ func replaceHostNamespace(host, ns string) string {
 		return strings.Join(parts, ".")
 	}
 	return host
+}
+
+func setContainerResources(r *unstructured.Unstructured, containerName string, res *corev1.ResourceRequirements) error {
+	if len(res.Claims) > 0 {
+		return errors.New("resource claims are not supported")
+	}
+	containers, found, err := unstructured.NestedSlice(r.Object, "spec", "template", "spec", "containers")
+	if err != nil || !found {
+		return errors.New("containers not found")
+	}
+	for i, c := range containers {
+		cm, ok := c.(map[string]any)
+		if !ok || cm["name"] != containerName {
+			continue
+		}
+		resMap := make(map[string]any)
+		if res.Requests != nil {
+			req := make(map[string]any)
+			for k, v := range res.Requests {
+				req[string(k)] = v.String()
+			}
+			resMap["requests"] = req
+		}
+		if res.Limits != nil {
+			lim := make(map[string]any)
+			for k, v := range res.Limits {
+				lim[string(k)] = v.String()
+			}
+			resMap["limits"] = lim
+		}
+		cm["resources"] = resMap
+		containers[i] = cm
+		return unstructured.SetNestedSlice(r.Object, containers, "spec", "template", "spec", "containers")
+	}
+	return fmt.Errorf("container %q not found", containerName)
 }
 
 func setContainerImage(r *unstructured.Unstructured, containerName, image string) error {
