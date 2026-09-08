@@ -192,6 +192,16 @@ type CreateAPIKeyRequest struct {
 // Per "Keys Shown Only Once": key is returned ONCE at creation and never again.
 // Users can only create keys for themselves - the key inherits the user's groups.
 func (h *Handler) CreateAPIKey(c *gin.Context) {
+	// API keys are inference credentials, not credentials for minting more API keys.
+	// Reject them here, even if the gateway has already authenticated the key, so a
+	// subscription-scoped key cannot recover the broader permissions of the user and
+	// groups stored in its metadata or extend its own lifetime through a child key.
+	if isAPIKeyBearer(c.GetHeader("Authorization")) {
+		h.recordTokenMint(h.service.GetTenantName(), "rejected")
+		c.JSON(http.StatusForbidden, gin.H{"error": "API keys cannot create API keys"})
+		return
+	}
+
 	var req CreateAPIKeyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -301,6 +311,11 @@ func (h *Handler) CreateAPIKey(c *gin.Context) {
 
 	// Return the key - THIS IS THE ONLY TIME THE PLAINTEXT IS SHOWN
 	c.JSON(http.StatusCreated, result)
+}
+
+func isAPIKeyBearer(authorization string) bool {
+	scheme, credential, found := strings.Cut(strings.TrimSpace(authorization), " ")
+	return found && strings.EqualFold(scheme, "Bearer") && strings.HasPrefix(credential, KeyPrefix)
 }
 
 // ValidateAPIKeyRequest is the request body for validating an API key.
