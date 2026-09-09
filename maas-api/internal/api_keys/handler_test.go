@@ -176,6 +176,34 @@ func TestCreateAPIKey_TokenMintMetrics(t *testing.T) {
 	}
 }
 
+func TestCreateAPIKey_RejectsAPIKeyAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := NewMockStore()
+	cfg := &config.Config{TenantName: "redteam"}
+	service := NewServiceWithLogger(store, cfg, fixedSubSelector{}, logger.Development())
+	spy := &spyMetricsRecorder{}
+	handler := NewHandler(logger.Development(), service, newMockAdminChecker(), spy)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/api-keys", strings.NewReader(`{"name":"escalation-attempt","subscription":"other-sub"}`))
+	c.Request.Header.Set("Authorization", "Bearer "+KeyPrefix+"caller_secret")
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("user", &token.UserContext{
+		Username: "alice",
+		Groups:   []string{"system:authenticated"},
+		Tenant:   "redteam",
+	})
+
+	handler.CreateAPIKey(c)
+
+	require.Equal(t, http.StatusForbidden, w.Code)
+	assert.JSONEq(t, `{"error":"API keys cannot create API keys"}`, w.Body.String())
+	assert.Empty(t, store.keys, "rejected requests must not persist a child key")
+	require.Len(t, spy.tokenMints, 1)
+	assert.Equal(t, metricsCall{tenant: "redteam", result: "rejected"}, spy.tokenMints[0])
+}
+
 func TestValidateAPIKey_RecordsValidationMetric(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	store := NewMockStore()
